@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 
 from app.api.routes.ct import router as ct_router
+from app.api.routes.model3 import router as model3_router
 from app.api.routes.modality import router as modality_router
 from app.api.routes.mri import router as mri_router
-from app.api.routes.model3a import router as model3a_router
 
 
 app = FastAPI(
@@ -15,7 +15,6 @@ app = FastAPI(
 app.include_router(ct_router)
 app.include_router(modality_router)
 app.include_router(mri_router)
-app.include_router(model3a_router)
 
 
 @app.get("/")
