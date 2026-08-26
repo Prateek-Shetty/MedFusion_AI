@@ -5,6 +5,7 @@ from app.api.routes.modality import router as modality_router
 from app.api.routes.mri import router as mri_router
 from app.api.routes.model3 import router as model3_router
 from app.api.routes.model4 import router as model4_router
+from app.api.routes.model5 import router as model5_router
 
 
 app = FastAPI(
@@ -14,7 +15,7 @@ app = FastAPI(
 
 
 # ============================================================
-# ROUTERS
+# API ROUTERS
 # ============================================================
 
 app.include_router(ct_router)
@@ -22,6 +23,7 @@ app.include_router(modality_router)
 app.include_router(mri_router)
 app.include_router(model3_router)
 app.include_router(model4_router)
+app.include_router(model5_router)
 
 
 # ============================================================
