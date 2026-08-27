@@ -11,6 +11,7 @@ from app.models.model4_segmentation import predict_model4
 from app.models.model5_who_classifier import predict_model5
 
 from app.services.gemini_service import gemini_service
+from app.services.places_service import places_service
 
 
 class AnalysisPipeline:
@@ -23,6 +24,7 @@ class AnalysisPipeline:
         -> Model 3
         -> Model 4A
         -> Model 5
+        -> Google Maps
         -> Gemini
 
     CT:
@@ -30,6 +32,7 @@ class AnalysisPipeline:
         -> Model 2B
         -> Model 4A
         -> Model 5
+        -> Google Maps
         -> Gemini
 
     If Model 2 detects no tumor:
@@ -340,6 +343,20 @@ class AnalysisPipeline:
         )
 
         # ====================================================
+        # GOOGLE MAPS
+        # ====================================================
+
+        places_result = (
+            self._run_places(
+                location=location
+            )
+        )
+
+        result["places"] = (
+            places_result
+        )
+
+        # ====================================================
         # GEMINI
         # ====================================================
 
@@ -499,6 +516,20 @@ class AnalysisPipeline:
         )
 
         # ====================================================
+        # GOOGLE MAPS
+        # ====================================================
+
+        places_result = (
+            self._run_places(
+                location=location
+            )
+        )
+
+        result["places"] = (
+            places_result
+        )
+
+        # ====================================================
         # GEMINI
         # ====================================================
 
@@ -644,6 +675,111 @@ class AnalysisPipeline:
             }
 
     # ========================================================
+    # GOOGLE MAPS
+    # ========================================================
+
+    @staticmethod
+    def _run_places(
+        location: Optional[Dict[str, float]],
+    ) -> Dict[str, Any]:
+
+        # ====================================================
+        # LOCATION NOT PROVIDED
+        # ====================================================
+
+        if not location:
+
+            return {
+
+                "available":
+                    False,
+
+                "status":
+                    "location_not_provided",
+
+                "maps_search_url":
+                    None,
+
+                "message":
+                    "User location was not provided.",
+            }
+
+        # ====================================================
+        # GET COORDINATES
+        # ====================================================
+
+        latitude = location.get(
+            "latitude"
+        )
+
+        longitude = location.get(
+            "longitude"
+        )
+
+        if latitude is None or longitude is None:
+
+            return {
+
+                "available":
+                    False,
+
+                "status":
+                    "invalid_location",
+
+                "maps_search_url":
+                    None,
+
+                "message":
+                    "Valid latitude and longitude are required.",
+            }
+
+        # ====================================================
+        # CREATE GOOGLE MAPS SEARCH URL
+        # ====================================================
+
+        try:
+
+            maps_url = (
+                places_service.create_maps_search_url(
+                    specialist="hospital",
+                    latitude=float(latitude),
+                    longitude=float(longitude),
+                )
+            )
+
+            return {
+
+                "available":
+                    True,
+
+                "status":
+                    "success",
+
+                "search_type":
+                    "hospital",
+
+                "maps_search_url":
+                    maps_url,
+            }
+
+        except Exception as error:
+
+            return {
+
+                "available":
+                    False,
+
+                "status":
+                    "maps_url_generation_failed",
+
+                "maps_search_url":
+                    None,
+
+                "error":
+                    str(error),
+            }
+
+    # ========================================================
     # GEMINI
     # ========================================================
 
@@ -683,9 +819,6 @@ class AnalysisPipeline:
 
             "model5":
                 model5_result,
-
-            "user_location":
-                location,
         }
 
         # ====================================================
@@ -713,3 +846,13 @@ class AnalysisPipeline:
                 "error":
                     str(error),
             }
+
+
+# ============================================================
+# NOTE:
+# `location` is still accepted by `_run_gemini()` so the
+# existing pipeline call structure is preserved.
+#
+# It is intentionally NOT included in `pipeline_data`.
+# Google Maps handles location separately.
+# ============================================================
