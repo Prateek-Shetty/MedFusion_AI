@@ -4,14 +4,32 @@ import os
 from dotenv import load_dotenv
 
 
-# Backend root directory
+# ============================================================
+# BACKEND ROOT DIRECTORY
+# ============================================================
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env
-load_dotenv(BASE_DIR / ".env")
 
+# ============================================================
+# LOAD ENVIRONMENT VARIABLES
+# ============================================================
+
+load_dotenv(
+    BASE_DIR / ".env"
+)
+
+
+# ============================================================
+# SETTINGS
+# ============================================================
 
 class Settings:
+
+    # ========================================================
+    # APPLICATION
+    # ========================================================
+
     APP_NAME: str = os.getenv(
         "APP_NAME",
         "MedFusion AI Backend"
@@ -27,6 +45,10 @@ class Settings:
         "development"
     )
 
+    # ========================================================
+    # SERVER
+    # ========================================================
+
     HOST: str = os.getenv(
         "HOST",
         "127.0.0.1"
@@ -39,6 +61,10 @@ class Settings:
         )
     )
 
+    # ========================================================
+    # UPLOAD
+    # ========================================================
+
     MAX_UPLOAD_SIZE_MB: int = int(
         os.getenv(
             "MAX_UPLOAD_SIZE_MB",
@@ -47,7 +73,7 @@ class Settings:
     )
 
     # ========================================================
-    # GEMINI
+    # GEMINI API KEYS
     # ========================================================
 
     GEMINI_API_KEY_1: str = os.getenv(
@@ -65,11 +91,30 @@ class Settings:
         ""
     )
 
-    GEMINI_MODEL: str = os.getenv(
-        "GEMINI_MODEL",
+    # ========================================================
+    # GEMINI MODELS
+    #
+    # Each API key has its own model configuration.
+    # ========================================================
+
+    GEMINI_MODEL_1: str = os.getenv(
+        "GEMINI_MODEL_1",
         "gemini-2.5-flash"
     )
 
+    GEMINI_MODEL_2: str = os.getenv(
+        "GEMINI_MODEL_2",
+        "gemini-3.6-flash"
+    )
 
-settings = Settings()
+    GEMINI_MODEL_3: str = os.getenv(
+        "GEMINI_MODEL_3",
+        "gemini-3.6-flash"
+    )
+
+
+# ============================================================
+# SINGLE SETTINGS INSTANCE
+# ============================================================
+
 settings = Settings()

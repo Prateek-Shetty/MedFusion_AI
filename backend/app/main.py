@@ -7,7 +7,7 @@ from app.api.routes.model3 import router as model3_router
 from app.api.routes.model4 import router as model4_router
 from app.api.routes.model5 import router as model5_router
 from app.api.routes.analysis import router as analysis_router
-
+from app.api.routes.chat import router as chat_router
 
 app = FastAPI(
     title="MedFusion AI",
@@ -26,7 +26,7 @@ app.include_router(model3_router)
 app.include_router(model4_router)
 app.include_router(model5_router)
 app.include_router(analysis_router)
-
+app.include_router(chat_router)
 
 # ============================================================
 # ROOT

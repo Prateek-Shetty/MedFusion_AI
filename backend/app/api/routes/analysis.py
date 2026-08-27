@@ -2,13 +2,21 @@ from pathlib import Path
 import shutil
 import tempfile
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+)
 
 from app.api.routes.modality import modality_model
 from app.api.routes.mri import mri_model
 from app.api.routes.ct import ct_model
 
-from app.services.analysis_pipeline import AnalysisPipeline
+from app.services.analysis_pipeline import (
+    AnalysisPipeline,
+)
 
 
 router = APIRouter(
@@ -18,7 +26,7 @@ router = APIRouter(
 
 
 # ============================================================
-# PIPELINE
+# PIPELINE INSTANCE
 # ============================================================
 
 pipeline = AnalysisPipeline(
@@ -29,23 +37,42 @@ pipeline = AnalysisPipeline(
 
 
 # ============================================================
-# FULL ANALYSIS
+# COMPLETE ANALYSIS
 # ============================================================
 
 @router.post("/full")
 async def full_analysis(
     file: UploadFile = File(...),
+
+    # ========================================================
+    # USER INFORMATION
+    # ========================================================
+
+    age: int | None = Form(None),
+
+    sex_category: str | None = Form(None),
+
+    # ========================================================
+    # USER LOCATION
+    #
+    # These come from browser/device geolocation.
+    # ========================================================
+
+    latitude: float | None = Form(None),
+
+    longitude: float | None = Form(None),
 ):
 
+    # ========================================================
+    # FILE VALIDATION
+    # ========================================================
+
     if not file.filename:
+
         raise HTTPException(
             status_code=400,
-            detail="No file provided.",
+            detail="No image provided.",
         )
-
-    # --------------------------------------------------------
-    # Allowed formats
-    # --------------------------------------------------------
 
     allowed_extensions = {
         ".jpg",
@@ -70,13 +97,75 @@ async def full_analysis(
             ),
         )
 
+    # ========================================================
+    # BASIC USER DATA
+    #
+    # Only collect information that the frontend actually asks
+    # the user for.
+    # ========================================================
+
+    patient_data = {}
+
+    if age is not None:
+        patient_data["age"] = age
+
+    if sex_category is not None:
+        patient_data["sex_category"] = (
+            sex_category.strip()
+        )
+
+    # ========================================================
+    # LOCATION
+    #
+    # Store coordinates as a structured object.
+    #
+    # This is preferable to asking the user to type:
+    # "Bangalore", "Chennai", etc.
+    # ========================================================
+
+    location = None
+
+    if (
+        latitude is not None
+        and longitude is not None
+    ):
+
+        # Basic coordinate validation
+
+        if not (
+            -90.0
+            <= latitude
+            <= 90.0
+        ):
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid latitude.",
+            )
+
+        if not (
+            -180.0
+            <= longitude
+            <= 180.0
+        ):
+
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid longitude.",
+            )
+
+        location = {
+            "latitude": latitude,
+            "longitude": longitude,
+        }
+
+    # ========================================================
+    # TEMPORARY IMAGE
+    # ========================================================
+
     temp_path = None
 
     try:
-
-        # ----------------------------------------------------
-        # Save uploaded image
-        # ----------------------------------------------------
 
         with tempfile.NamedTemporaryFile(
             delete=False,
@@ -92,38 +181,67 @@ async def full_analysis(
                 temp_file.name
             )
 
-        # ----------------------------------------------------
-        # RUN PIPELINE
-        # ----------------------------------------------------
+        # ====================================================
+        # RUN COMPLETE PIPELINE
+        # ====================================================
 
         result = pipeline.run(
-            temp_path
+            image_path=temp_path,
+            patient_data=patient_data,
+            location=location,
         )
 
+        # ====================================================
+        # API RESPONSE
+        # ====================================================
+
         return {
-            "success": True,
-            "filename": file.filename,
-            "pipeline": result,
+
+            "success":
+                True,
+
+            "filename":
+                file.filename,
+
+            "patient_data":
+                patient_data,
+
+            "location":
+                location,
+
+            "pipeline":
+                result,
         }
+
+    except HTTPException:
+
+        raise
 
     except Exception as error:
 
         raise HTTPException(
             status_code=500,
             detail=(
-                f"Analysis pipeline failed: {str(error)}"
+                "Analysis pipeline failed: "
+                f"{str(error)}"
             ),
         )
 
     finally:
 
-        # ----------------------------------------------------
-        # Remove temporary image
-        # ----------------------------------------------------
+        # ====================================================
+        # DELETE TEMPORARY FILE
+        # ====================================================
 
         if (
             temp_path is not None
             and temp_path.exists()
         ):
 
-            temp_path.unlink()
+            try:
+
+                temp_path.unlink()
+
+            except OSError:
+
+                pass
