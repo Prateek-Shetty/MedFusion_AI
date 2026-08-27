@@ -46,8 +46,22 @@ class Settings:
         )
     )
 
-    GEMINI_API_KEY: str = os.getenv(
-        "GEMINI_API_KEY",
+    # ========================================================
+    # GEMINI
+    # ========================================================
+
+    GEMINI_API_KEY_1: str = os.getenv(
+        "GEMINI_API_KEY_1",
+        ""
+    )
+
+    GEMINI_API_KEY_2: str = os.getenv(
+        "GEMINI_API_KEY_2",
+        ""
+    )
+
+    GEMINI_API_KEY_3: str = os.getenv(
+        "GEMINI_API_KEY_3",
         ""
     )
 
@@ -56,4 +70,6 @@ class Settings:
         "gemini-2.5-flash"
     )
 
+
+settings = Settings()
 settings = Settings()
