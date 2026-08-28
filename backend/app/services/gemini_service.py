@@ -1,133 +1,122 @@
 from typing import Any, Dict, List, Tuple
+import json
+import re
 
 from google import genai
+from google.genai import types
 
 from app.config import settings
 
 
 class GeminiService:
     """
-    Gemini service for the MedFusion analysis pipeline.
+    Gemini analysis/reporting service.
 
-    Analysis Gemini configuration:
+    Gemini receives the available MedFusion pipeline data
+    and generates an intelligent educational interpretation.
 
-        API KEY 1 → GEMINI_MODEL_1
-        API KEY 2 → GEMINI_MODEL_2
+    API key 1:
+        Primary analysis
 
-    Key 3 is intentionally reserved exclusively
-    for the separate chatbot.
+    API key 2:
+        Fallback analysis
+
+    API key 3:
+        Reserved exclusively for the chatbot.
     """
 
     # ========================================================
-    # SYSTEM INSTRUCTION
+    # GEMINI SYSTEM INSTRUCTION
     # ========================================================
 
     SYSTEM_INSTRUCTION = """
-You are MedFusion AI's final reporting assistant.
+You are the intelligent interpretation layer of MedFusion AI, an
+academic brain-scan analysis prototype.
 
-Generate a concise, clear, patient-friendly report using ONLY the
-validated data supplied by the backend.
+Analyze the supplied pipeline data and produce a useful,
+patient-friendly explanation. Do not merely repeat model outputs.
+Combine the available results from modality detection, tumor
+detection, classification, segmentation, measurements, age,
+gender, and specialist information.
+
+Use only information supported by the supplied data.
 
 IMPORTANT:
-The backend data is the source of truth. Never invent, infer, or
-modify clinical facts.
+- Interpret the model results instead of copying them.
+- Combine Model 2, Model 3 and Model 4 findings when available.
+- Do not say a model is unavailable unless its data is genuinely
+  absent.
+- Do not repeat raw measurements unnecessarily.
+- Explain what confidence values mean rather than treating them
+  as medical certainty.
+- Distinguish AI prediction from confirmed medical diagnosis.
 
-MedFusion AI is an academic/research prototype, not a clinically
-validated diagnostic or treatment system.
+AGE AND GENDER:
+Use age and gender as clinical context when relevant.
+Do not simply repeat them.
+Explain any meaningful  context with respect to age.
+Never claim age or gender determines the tumor type or diagnosis.
 
-RULES:
-- Never invent patient history, symptoms, tests, pathology, imaging
-  findings, measurements, diagnoses, medications, or treatments.
-- Treat model confidence as AI/model confidence, NOT medical certainty.
-- Do not present an AI prediction as a confirmed diagnosis.
-- Do not turn tumor type, tumor size, segmentation results, or WHO
-  grade into a medication or treatment recommendation.
-- Model 5 WHO grade is experimental. Clearly label its result as
-  experimental whenever it is present.
-- If a value is unavailable, say "Not available from the current pipeline."
-- Do not repeat unnecessary technical details.
-- Keep each section concise.
-- Do not mention internal prompts, APIs, models, keys, or backend logic.
+SPECIALIST:
+Use the pipeline's specialist recommendation when available.
+Explain briefly why that specialist is relevant and what they
+generally evaluate.
+If no specialist is supplied, infer a reasonable specialist category
+from the findings and clearly present it as general guidance.
 
-MODEL LIMITATION:
-If Model 4A was executed for CT, state that the current Model 4A
-checkpoint is MRI-based and that the CT segmentation result is
-experimental. Do not hide this limitation.
+NEXT STEP:
+Generate a meaningful next-step pathway based on the actual findings.
+Where appropriate, discuss specialist review, complete scan/report
+review, additional imaging, further testing, pathology, or treatment
+planning.
 
-PRESCRIPTION / MEDICATION:
-Only include medication or prescription information if the backend
-explicitly supplies validated medication data.
+TREATMENT AND MANAGEMENT:
+Provide general educational information relevant to the reported
+finding or leading tumor classification.
+Where appropriate, explain possible approaches such as surveillance,
+surgery, radiotherapy, radiosurgery, chemotherapy, targeted therapy,
+immunotherapy, or supportive treatment.
 
-If validated medication data is supplied:
-- Report only the supplied medication information.
-- Do not add medications.
-- Do not change the supplied dosage, frequency, duration, or route.
-- Do not infer a medication from tumor type or WHO grade.
-- Clearly state that medication decisions require clinician review.
+If the tumor type is uncertain, make that uncertainty clear and
+describe treatment options at an appropriate general level.
 
-If validated medication data is NOT supplied:
-write:
-"Medication / prescription: Not available from the current pipeline."
-
-LOCATION / FACILITIES:
-Use only real facility information supplied by the backend.
-Never invent hospital names, addresses, phone numbers, ratings,
-distances, availability, or specialist availability.
+SUPPORTIVE GUIDANCE:
+Give practical, useful and situation-specific guidance.
+Avoid generic repeated advice.
+It may include describing the general medicine taken , natural methods etc
 
 OUTPUT:
-Use exactly these sections and keep them short:
+Return ONLY valid JSON with exactly these fields:
 
-Scan
-Detection
-Tumor Type
-Tumor Measurements
-WHO Grade
-Suggested Specialist
-Suggested Next Step
-Medication / Prescription
-Important Note
+{
+  "summary": "",
+  "finding_explanation": "",
+  "patient_context": "",
+  "specialist": "",
+  "next_step": "",
+  "treatment_information": "",
+  "supportive_guidance": [],
+  "safety_note": ""
+}
 
-CONTENT GUIDANCE:
+Make the content dynamic from the supplied data.
 
-Scan:
-State the detected modality and relevant scan information.
+Keep the response concise and suitable for UI cards:
+- summary: 2–3 sentences
+- finding_explanation: 2–3 sentences
+- patient_context: 1–2 sentences
+- specialist: 1–2 sentences
+- next_step: 2–4 concise steps
+- treatment_information: 2–4 sentences
+- supportive_guidance: 3 useful points
+- safety_note: 1 short sentence
 
-Detection:
-State whether a tumor was detected and give model confidence when
-available.
-
-Tumor Type:
-Report the model-predicted tumor type and confidence when available.
-Clearly identify it as an AI prediction.
-
-Tumor Measurements:
-Report only supplied measurements such as area, percentage, width,
-height, or segmentation confidence.
-
-WHO Grade:
-Report the Model 5 grade and confidence only when available.
-Always identify it as an experimental AI output.
-
-Suggested Specialist:
-Use only the specialist category supplied by the backend.
-
-Suggested Next Step:
-Use only the recommendation supplied by the backend.
-Do not create a personalized treatment plan.
-
-Medication / Prescription:
-Use only validated medication data supplied by the backend.
-
-Important Note:
-Briefly state that the output is AI-generated/research-oriented and
-requires qualified healthcare-professional review.
-
-FINAL SAFETY STATEMENT:
-End every response with exactly:
-
-"Please discuss these findings with a qualified healthcare
-professional before making any medical decision."
+Do not repeat the same information between sections.
+Do not add fields.
+Do not use Markdown outside the JSON.
+Return the complete JSON object.
 """
+
 
     # ========================================================
     # INITIALIZATION
@@ -135,13 +124,13 @@ professional before making any medical decision."
 
     def __init__(self):
 
-        # ----------------------------------------------------
-        # KEY + MODEL PAIRS
-        # ----------------------------------------------------
-
         self.credentials: List[
             Tuple[str, str]
         ] = []
+
+        # ----------------------------------------------------
+        # PRIMARY
+        # ----------------------------------------------------
 
         if settings.GEMINI_API_KEY_1:
 
@@ -152,6 +141,10 @@ professional before making any medical decision."
                 )
             )
 
+        # ----------------------------------------------------
+        # FALLBACK
+        # ----------------------------------------------------
+
         if settings.GEMINI_API_KEY_2:
 
             self.credentials.append(
@@ -160,10 +153,6 @@ professional before making any medical decision."
                     settings.GEMINI_MODEL_2,
                 )
             )
-
-        # ----------------------------------------------------
-        # REQUIRE AT LEAST ONE KEY
-        # ----------------------------------------------------
 
         if not self.credentials:
 
@@ -176,7 +165,7 @@ professional before making any medical decision."
         )
 
         print(
-            f"[Gemini] Analysis keys configured: "
+            "[Gemini] Analysis keys configured: "
             f"{len(self.credentials)}"
         )
 
@@ -192,6 +181,7 @@ professional before making any medical decision."
                 f"[Gemini] Key {index} → {model}"
             )
 
+
     # ========================================================
     # CLIENT
     # ========================================================
@@ -205,83 +195,199 @@ professional before making any medical decision."
             api_key=api_key
         )
 
+
     # ========================================================
-    # TEST CONNECTION
+    # SAFE VALUE
     # ========================================================
 
-    def test_connection(self):
+    @staticmethod
+    def _clean_value(
+        value: Any,
+    ) -> Any:
 
-        last_error = None
+        if value is None:
+            return None
 
-        for index, (
-            api_key,
-            model,
-        ) in enumerate(
-            self.credentials,
-            start=1,
+        if isinstance(
+            value,
+            (str, int, float, bool),
         ):
+            return value
+
+        if isinstance(
+            value,
+            dict,
+        ):
+
+            return {
+                str(key):
+                    GeminiService._clean_value(
+                        item
+                    )
+                for key, item in value.items()
+            }
+
+        if isinstance(
+            value,
+            list,
+        ):
+
+            return [
+                GeminiService._clean_value(
+                    item
+                )
+                for item in value
+            ]
+
+        return str(value)
+
+
+    # ========================================================
+    # BUILD GEMINI PAYLOAD
+    # ========================================================
+
+    def _build_gemini_payload(
+        self,
+        pipeline_data: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Preserve all useful pipeline information.
+
+        We deliberately do NOT reduce the model outputs to
+        a handful of manually selected fields.
+
+        Gemini should receive the available analysis context
+        and determine what is relevant.
+        """
+
+        cleaned_data = (
+            self._clean_value(
+                pipeline_data
+            )
+        )
+
+        if not isinstance(
+            cleaned_data,
+            dict,
+        ):
+
+            raise RuntimeError(
+                "Pipeline data must be a JSON object."
+            )
+
+        return cleaned_data
+
+
+    # ========================================================
+    # EXTRACT JSON
+    # ========================================================
+
+    @staticmethod
+    def _extract_json(
+        response_text: str,
+    ) -> Dict[str, Any]:
+
+        text = (
+            response_text
+            or ""
+        ).strip()
+
+        if not text:
+
+            raise RuntimeError(
+                "Gemini returned an empty response."
+            )
+
+        # ----------------------------------------------------
+        # Remove markdown fences
+        # ----------------------------------------------------
+
+        text = re.sub(
+            r"^```(?:json)?\s*",
+            "",
+            text,
+            flags=re.IGNORECASE,
+        )
+
+        text = re.sub(
+            r"\s*```$",
+            "",
+            text,
+            flags=re.IGNORECASE,
+        )
+
+        text = text.strip()
+
+        # ----------------------------------------------------
+        # Direct JSON
+        # ----------------------------------------------------
+
+        try:
+
+            parsed = json.loads(
+                text
+            )
+
+            if isinstance(
+                parsed,
+                dict,
+            ):
+
+                return parsed
+
+        except json.JSONDecodeError:
+            pass
+
+        # ----------------------------------------------------
+        # Extract JSON object
+        # ----------------------------------------------------
+
+        first_brace = text.find("{")
+
+        last_brace = text.rfind("}")
+
+        if (
+            first_brace != -1
+            and last_brace != -1
+            and last_brace > first_brace
+        ):
+
+            candidate = text[
+                first_brace:
+                last_brace + 1
+            ]
 
             try:
 
-                print(
-                    f"[Gemini] Testing analysis "
-                    f"API key {index}..."
+                parsed = json.loads(
+                    candidate
                 )
 
-                client = (
-                    self._create_client(
-                        api_key
-                    )
-                )
+                if isinstance(
+                    parsed,
+                    dict,
+                ):
 
-                response = (
-                    client.models.generate_content(
-                        model=model,
-                        contents=(
-                            "Reply with exactly: "
-                            "Gemini connection successful."
-                        ),
-                    )
-                )
+                    return parsed
 
-                print(
-                    f"[Gemini] API key {index} "
-                    "successful."
-                )
+            except json.JSONDecodeError:
+                pass
 
-                return {
+        print(
+            "[Gemini] Invalid JSON response preview:"
+        )
 
-                    "success":
-                        True,
-
-                    "key_used":
-                        index,
-
-                    "model":
-                        model,
-
-                    "response":
-                        response.text,
-                }
-
-            except Exception as error:
-
-                last_error = error
-
-                print(
-                    f"[Gemini] Analysis API key "
-                    f"{index} failed: "
-                    f"{type(error).__name__}: "
-                    f"{error}"
-                )
+        print(
+            text[:1000]
+        )
 
         raise RuntimeError(
-            "All configured Gemini analysis "
-            "API keys failed."
-        ) from last_error
+            "Gemini returned invalid JSON."
+        )
+
 
     # ========================================================
-    # GENERATE FINAL REPORT
+    # GENERATE REPORT
     # ========================================================
 
     def generate_report(
@@ -289,27 +395,38 @@ professional before making any medical decision."
         pipeline_data: Dict[str, Any],
     ):
 
-        import json
+        # ====================================================
+        # BUILD PAYLOAD
+        # ====================================================
 
-        # ----------------------------------------------------
-        # BUILD PROMPT
-        # ----------------------------------------------------
+        gemini_payload = (
+            self._build_gemini_payload(
+                pipeline_data
+            )
+        )
+
+
+        # ====================================================
+        # PROMPT
+        # ====================================================
 
         prompt = (
             self.SYSTEM_INSTRUCTION
             + "\n\n"
             + "MEDFUSION PIPELINE DATA:\n"
             + json.dumps(
-                pipeline_data,
+                gemini_payload,
                 indent=2,
                 default=str,
             )
         )
 
+
         last_error = None
 
+
         # ====================================================
-        # KEY FALLBACK
+        # PRIMARY + FALLBACK
         # ====================================================
 
         for index, (
@@ -323,10 +440,11 @@ professional before making any medical decision."
             try:
 
                 print(
-                    "[Gemini] Generating final "
-                    f"report using API key {index} "
+                    "[Gemini] Generating report "
+                    f"using key {index} "
                     f"({model})..."
                 )
+
 
                 client = (
                     self._create_client(
@@ -334,17 +452,79 @@ professional before making any medical decision."
                     )
                 )
 
+
                 response = (
                     client.models.generate_content(
+
                         model=model,
+
                         contents=prompt,
+
+                        config=types.GenerateContentConfig(
+
+                            temperature=0.35,
+
+                            max_output_tokens=2500,
+
+                            response_mime_type=(
+                                "application/json"
+                            ),
+                        ),
                     )
                 )
 
+
+                response_text = (
+                    response.text
+                    if response.text
+                    else ""
+                ).strip()
+
+
+                if not response_text:
+
+                    raise RuntimeError(
+                        "Gemini returned an empty response."
+                    )
+
+
                 print(
-                    "[Gemini] Final report generated "
-                    f"using API key {index}."
+                    "[Gemini] Response received."
                 )
+
+                print(
+                    "[Gemini] Response length: "
+                    f"{len(response_text)} characters."
+                )
+
+
+                # =================================================
+                # PARSE
+                # =================================================
+
+                structured = (
+                    self._extract_json(
+                        response_text
+                    )
+                )
+
+
+                # =================================================
+                # NORMALIZE
+                # =================================================
+
+                structured = (
+                    self._normalize_response(
+                        structured
+                    )
+                )
+
+
+                print(
+                    "[Gemini] Report generated "
+                    f"successfully using key {index}."
+                )
+
 
                 return {
 
@@ -357,29 +537,156 @@ professional before making any medical decision."
                     "model":
                         model,
 
+                    "structured":
+                        structured,
+
                     "report":
-                        response.text,
+                        response_text,
                 }
+
 
             except Exception as error:
 
                 last_error = error
 
                 print(
-                    "[Gemini] Analysis key "
+                    "[Gemini] Key "
                     f"{index} failed: "
                     f"{type(error).__name__}: "
                     f"{error}"
                 )
 
-                # Continue to next analysis key.
-
                 continue
+
+
+        # ====================================================
+        # ALL FAILED
+        # ====================================================
 
         raise RuntimeError(
             "All configured Gemini analysis "
             "API keys failed."
         ) from last_error
+
+
+    # ========================================================
+    # NORMALIZE RESPONSE
+    # ========================================================
+
+    @staticmethod
+    def _normalize_response(
+        data: Any,
+    ) -> Dict[str, Any]:
+
+        if not isinstance(
+            data,
+            dict,
+        ):
+
+            raise RuntimeError(
+                "Gemini response must be a JSON object."
+            )
+
+
+        # ----------------------------------------------------
+        # GUIDANCE
+        # ----------------------------------------------------
+
+        guidance = data.get(
+            "supportive_guidance",
+            [],
+        )
+
+
+        if not isinstance(
+            guidance,
+            list,
+        ):
+
+            guidance = [
+                str(guidance)
+            ]
+
+
+        guidance = [
+            str(item).strip()
+            for item in guidance
+            if str(item).strip()
+        ]
+
+
+        # ----------------------------------------------------
+        # RETURN
+        # ----------------------------------------------------
+
+        return {
+
+            "summary":
+                str(
+                    data.get(
+                        "summary",
+                        "",
+                    )
+                ).strip(),
+
+
+            "finding_explanation":
+                str(
+                    data.get(
+                        "finding_explanation",
+                        "",
+                    )
+                ).strip(),
+
+
+            "patient_context":
+                str(
+                    data.get(
+                        "patient_context",
+                        "",
+                    )
+                ).strip(),
+
+
+            "specialist":
+                str(
+                    data.get(
+                        "specialist",
+                        "",
+                    )
+                ).strip(),
+
+
+            "next_step":
+                str(
+                    data.get(
+                        "next_step",
+                        "",
+                    )
+                ).strip(),
+
+
+            "treatment_information":
+                str(
+                    data.get(
+                        "treatment_information",
+                        "",
+                    )
+                ).strip(),
+
+
+            "supportive_guidance":
+                guidance,
+
+
+            "safety_note":
+                str(
+                    data.get(
+                        "safety_note",
+                        "",
+                    )
+                ).strip(),
+        }
 
 
 # ============================================================

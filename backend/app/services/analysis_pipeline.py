@@ -524,6 +524,9 @@ class AnalysisPipeline:
                 places_result=
                     places_result,
 
+                patient_data=
+                    patient_data,
+
             )
         )
 
@@ -1010,17 +1013,20 @@ class AnalysisPipeline:
 
     @staticmethod
     def _run_gemini(
-        modality: str,
-        modality_result: Dict[str, Any],
-        tumor_detection: Dict[str, Any],
-        model3_result: Optional[
-            Dict[str, Any]
-        ],
-        model4_result: Dict[str, Any],
-        location: Optional[
-            Dict[str, float]
-        ],
-        places_result: Dict[str, Any],
+    modality: str,
+    modality_result: Dict[str, Any],
+    tumor_detection: Dict[str, Any],
+    model3_result: Optional[
+        Dict[str, Any]
+    ],
+    model4_result: Dict[str, Any],
+    patient_data: Optional[
+        Dict[str, Any]
+    ],
+    location: Optional[
+        Dict[str, float]
+    ],
+    places_result: Dict[str, Any],
     ) -> Dict[str, Any]:
 
         # ====================================================
@@ -1111,26 +1117,31 @@ class AnalysisPipeline:
         # ====================================================
 
         pipeline_data = {
+    "patient": {
+        "age": patient_data.get("age")
+        if isinstance(patient_data, dict)
+        else None,
 
-            "modality":
-                modality,
+        "sex_category": patient_data.get(
+            "sex_category"
+        )
+        if isinstance(patient_data, dict)
+        else None,
+    },
 
-            "modality_result":
-                modality_result,
+    "scan": {
+        "modality": modality,
+        "modality_result": modality_result,
+    },
 
-            "tumor_detection":
-                tumor_detection,
+    "tumor_detection": tumor_detection,
 
-            "model3":
-                model3_summary,
+    "model3": model3_summary,
 
-            "model4":
-                model4_summary,
+    "model4": model4_summary,
 
-            "specialist_search":
-                places_summary,
-
-        }
+    "specialist_search": places_summary,
+}
 
         # ====================================================
         # GEMINI
