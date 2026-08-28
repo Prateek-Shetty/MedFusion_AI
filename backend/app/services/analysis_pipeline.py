@@ -1,8 +1,6 @@
 # ============================================================
 # MEDFUSION AI — COMPLETE ANALYSIS PIPELINE
 #
-# Pipeline:
-#
 # MRI:
 #   Model 1
 #      ↓
@@ -11,8 +9,6 @@
 #   Model 3
 #      ↓
 #   Model 4A
-#      ↓
-#   Model 5
 #      ↓
 #   Google Maps — Neurosurgery Hospital
 #      ↓
@@ -25,26 +21,19 @@
 #      ↓
 #   Model 4A
 #      ↓
-#   Model 5
-#      ↓
 #   Google Maps — Neurosurgery Hospital
 #      ↓
 #   Gemini
 #
-# IMPORTANT:
+# Model 5 has been completely removed.
 #
-# - Missing Model 5 metadata is NEVER fabricated.
-# - Model 4 tumor dimensions are NOT falsely converted into
-#   MRI voxel dimensions.
-# - Gemini receives only useful structured information.
-# - Base64 segmentation images are NOT sent to Gemini.
-# - Google Maps searches specifically for Neurosurgery.
+# Supported input:
+#   JPG / JPEG / PNG / BMP / TIF / TIFF
+#
 # ============================================================
-
 
 from pathlib import Path
 from typing import Any, Dict, Optional
-
 
 from PIL import Image
 
@@ -63,10 +52,6 @@ from app.models.model3_classifier import (
 
 from app.models.model4_segmentation import (
     predict_model4,
-)
-
-from app.models.model5_who_classifier import (
-    predict_model5,
 )
 
 
@@ -98,8 +83,7 @@ class AnalysisPipeline:
         -> Model 2A
         -> Model 3
         -> Model 4A
-        -> Model 5
-        -> Google Maps
+        -> Neurosurgery Hospital Search
         -> Gemini
 
     CT:
@@ -107,47 +91,11 @@ class AnalysisPipeline:
         Model 1
         -> Model 2B
         -> Model 4A
-        -> Model 5
-        -> Google Maps
+        -> Neurosurgery Hospital Search
         -> Gemini
 
-    Important:
-
-    Model 5 is experimental and requires the exact metadata
-    features on which its RandomForest classifier was trained.
-
-    Missing metadata is never invented.
-
-    Model 4 measurements are passed to Gemini as structured
-    information, but are NOT falsely mapped to Model 5 MRI
-    acquisition metadata.
+    Model 5 has intentionally been removed.
     """
-
-    # ========================================================
-    # MODEL 5 REQUIRED FEATURES
-    # ========================================================
-
-    MODEL5_FEATURES = [
-
-        "age",
-
-        "sex_category",
-
-        "voxel_x_mm",
-
-        "voxel_y_mm",
-
-        "slice_thickness_mm",
-
-        "field_strength_t",
-
-        "field_strength_category",
-
-        "resolution_category",
-
-        "slice_thickness_category",
-    ]
-
 
     # ========================================================
     # CONSTRUCTOR
@@ -160,12 +108,17 @@ class AnalysisPipeline:
         ct_model: CTTumorDetector,
     ):
 
-        self.modality_model = modality_model
+        self.modality_model = (
+            modality_model
+        )
 
-        self.mri_model = mri_model
+        self.mri_model = (
+            mri_model
+        )
 
-        self.ct_model = ct_model
-
+        self.ct_model = (
+            ct_model
+        )
 
     # ========================================================
     # MAIN PIPELINE
@@ -183,13 +136,12 @@ class AnalysisPipeline:
     ) -> Dict[str, Any]:
 
         # ----------------------------------------------------
-        # Normalize image path
+        # NORMALIZE IMAGE PATH
         # ----------------------------------------------------
 
         image_path = Path(
             image_path
         )
-
 
         if not image_path.exists():
 
@@ -197,9 +149,8 @@ class AnalysisPipeline:
                 f"Image not found: {image_path}"
             )
 
-
         # ----------------------------------------------------
-        # Normalize patient data
+        # NORMALIZE PATIENT DATA
         # ----------------------------------------------------
 
         patient_data = (
@@ -208,9 +159,8 @@ class AnalysisPipeline:
             else {}
         )
 
-
         # ====================================================
-        # MODEL 1 — MODALITY
+        # MODEL 1 — MODALITY CLASSIFICATION
         # ====================================================
 
         modality_result = (
@@ -219,14 +169,12 @@ class AnalysisPipeline:
             )
         )
 
-
         modality = str(
             modality_result.get(
                 "predicted_modality",
                 "",
             )
-        ).upper()
-
+        ).upper().strip()
 
         # ====================================================
         # MRI
@@ -241,6 +189,23 @@ class AnalysisPipeline:
                 location=location,
             )
 
+        # ====================================================
+        # MR FALLBACK
+        # ====================================================
+
+        if modality == "MR":
+
+            modality_result = {
+                **modality_result,
+                "predicted_modality": "MRI",
+            }
+
+            return self._run_mri_pipeline(
+                image_path=image_path,
+                modality_result=modality_result,
+                patient_data=patient_data,
+                location=location,
+            )
 
         # ====================================================
         # CT
@@ -255,7 +220,6 @@ class AnalysisPipeline:
                 location=location,
             )
 
-
         # ====================================================
         # UNKNOWN MODALITY
         # ====================================================
@@ -269,9 +233,12 @@ class AnalysisPipeline:
                 modality_result,
 
             "message":
-                "Model 1 returned an unknown modality.",
-        }
+                (
+                    "Model 1 returned an unknown "
+                    "modality."
+                ),
 
+        }
 
     # ========================================================
     # MRI PIPELINE
@@ -288,7 +255,7 @@ class AnalysisPipeline:
     ) -> Dict[str, Any]:
 
         # ====================================================
-        # MODEL 2A
+        # MODEL 2A — MRI TUMOR DETECTION
         # ====================================================
 
         tumor_detection = (
@@ -297,7 +264,6 @@ class AnalysisPipeline:
             )
         )
 
-
         predicted_class = str(
             tumor_detection.get(
                 "predicted_class",
@@ -305,11 +271,9 @@ class AnalysisPipeline:
             )
         ).strip().lower()
 
-
         tumor_detected = (
             predicted_class == "tumor"
         )
-
 
         # ====================================================
         # INITIAL RESULT
@@ -333,72 +297,145 @@ class AnalysisPipeline:
 
                 "result":
                     tumor_detection,
+
             },
 
             "tumor_detected":
                 tumor_detected,
+
         }
 
-
         # ====================================================
-        # NO TUMOR → STOP
+        # NO TUMOR
         # ====================================================
 
         if not tumor_detected:
 
-            result["pipeline_status"] = (
-                "stopped_no_tumor"
-            )
+            result[
+                "pipeline_status"
+            ] = "stopped_no_tumor"
 
-            result["message"] = (
+            result[
+                "message"
+            ] = (
                 "No tumor detected by Model 2A. "
                 "Pipeline stopped."
             )
 
             return result
 
-
         # ====================================================
         # MODEL 3
         # ====================================================
 
-        with Image.open(
-            image_path
-        ) as image:
+        try:
 
-            model3_result = (
-                predict_model3(
-                    image.convert("RGB")
+            with Image.open(
+                image_path
+            ) as image:
+
+                model3_result = (
+                    predict_model3(
+                        image.convert(
+                            "RGB"
+                        )
+                    )
                 )
+
+        except Exception as error:
+
+            result[
+                "model3"
+            ] = {
+
+                "model":
+                    "Model 3",
+
+                "status":
+                    "failed",
+
+                "error":
+                    str(error),
+
+            }
+
+            result[
+                "pipeline_status"
+            ] = "model3_failed"
+
+            result[
+                "message"
+            ] = (
+                "Model 3 failed during classification."
             )
 
+            return result
 
-        result["model3"] = {
+        result[
+            "model3"
+        ] = {
 
             "model":
                 "Model 3",
 
+            "status":
+                "success",
+
             "result":
                 model3_result,
+
         }
 
-
         # ====================================================
-        # MODEL 4A
+        # MODEL 4A — SEGMENTATION
         # ====================================================
 
-        with Image.open(
-            image_path
-        ) as image:
+        try:
 
-            model4_result = (
-                predict_model4(
-                    image.convert("RGB")
+            with Image.open(
+                image_path
+            ) as image:
+
+                model4_result = (
+                    predict_model4(
+                        image.convert(
+                            "RGB"
+                        )
+                    )
                 )
+
+        except Exception as error:
+
+            result[
+                "model4"
+            ] = {
+
+                "model":
+                    "Model 4A",
+
+                "status":
+                    "failed",
+
+                "error":
+                    str(error),
+
+            }
+
+            result[
+                "pipeline_status"
+            ] = "model4_failed"
+
+            result[
+                "message"
+            ] = (
+                "Model 4A failed during segmentation."
             )
 
+            return result
 
-        result["model4"] = {
+        result[
+            "model4"
+        ] = {
 
             "model":
                 "Model 4A",
@@ -409,10 +446,13 @@ class AnalysisPipeline:
             "experimental":
                 False,
 
+            "status":
+                "success",
+
             "result":
                 model4_result,
-        }
 
+        }
 
         # ====================================================
         # MODEL 4 SAFETY CHECK
@@ -425,14 +465,17 @@ class AnalysisPipeline:
             )
         )
 
-
         if not model4_tumor_detected:
 
-            result["pipeline_status"] = (
+            result[
+                "pipeline_status"
+            ] = (
                 "segmentation_found_no_tumor"
             )
 
-            result["message"] = (
+            result[
+                "message"
+            ] = (
                 "Model 2A detected a tumor, but "
                 "Model 4A did not produce a "
                 "segmented tumor region."
@@ -440,26 +483,8 @@ class AnalysisPipeline:
 
             return result
 
-
         # ====================================================
-        # MODEL 5
-        # ====================================================
-
-        model5_result = (
-            self._run_model5(
-                patient_data=patient_data,
-                model4_result=model4_result,
-            )
-        )
-
-
-        result["model5"] = (
-            model5_result
-        )
-
-
-        # ====================================================
-        # GOOGLE MAPS
+        # GOOGLE MAPS — NEUROSURGERY
         # ====================================================
 
         places_result = (
@@ -468,11 +493,9 @@ class AnalysisPipeline:
             )
         )
 
-
-        result["places"] = (
-            places_result
-        )
-
+        result[
+            "places"
+        ] = places_result
 
         # ====================================================
         # GEMINI
@@ -480,6 +503,7 @@ class AnalysisPipeline:
 
         gemini_result = (
             self._run_gemini(
+
                 modality="MRI",
 
                 modality_result=
@@ -494,40 +518,35 @@ class AnalysisPipeline:
                 model4_result=
                     model4_result,
 
-                model5_result=
-                    model5_result,
-
                 location=
                     location,
 
                 places_result=
                     places_result,
+
             )
         )
 
-
-        result["gemini"] = (
-            gemini_result
-        )
-
+        result[
+            "gemini"
+        ] = gemini_result
 
         # ====================================================
         # FINAL STATUS
         # ====================================================
 
-        result["pipeline_status"] = (
-            "completed"
-        )
+        result[
+            "pipeline_status"
+        ] = "completed"
 
-
-        result["message"] = (
+        result[
+            "message"
+        ] = (
             "MRI pipeline completed through "
-            "Model 4A, Model 5, Google Maps and Gemini."
+            "Model 4A, Neurosurgery search and Gemini."
         )
-
 
         return result
-
 
     # ========================================================
     # CT PIPELINE
@@ -544,7 +563,7 @@ class AnalysisPipeline:
     ) -> Dict[str, Any]:
 
         # ====================================================
-        # MODEL 2B
+        # MODEL 2B — CT TUMOR DETECTION
         # ====================================================
 
         tumor_detection = (
@@ -553,7 +572,6 @@ class AnalysisPipeline:
             )
         )
 
-
         predicted_class = str(
             tumor_detection.get(
                 "predicted_class",
@@ -561,11 +579,9 @@ class AnalysisPipeline:
             )
         ).strip().lower()
 
-
         tumor_detected = (
             predicted_class == "tumor"
         )
-
 
         # ====================================================
         # INITIAL RESULT
@@ -589,50 +605,87 @@ class AnalysisPipeline:
 
                 "result":
                     tumor_detection,
+
             },
 
             "tumor_detected":
                 tumor_detected,
+
         }
 
-
         # ====================================================
-        # NO TUMOR → STOP
+        # NO TUMOR
         # ====================================================
 
         if not tumor_detected:
 
-            result["pipeline_status"] = (
-                "stopped_no_tumor"
-            )
+            result[
+                "pipeline_status"
+            ] = "stopped_no_tumor"
 
-            result["message"] = (
+            result[
+                "message"
+            ] = (
                 "No tumor detected by Model 2B. "
                 "Pipeline stopped."
             )
 
             return result
 
-
         # ====================================================
         # MODEL 4A
         #
         # Model 4A was trained for MRI.
-        # CT usage remains experimental.
+        #
+        # CT execution is therefore marked experimental.
         # ====================================================
 
-        with Image.open(
-            image_path
-        ) as image:
+        try:
 
-            model4_result = (
-                predict_model4(
-                    image.convert("RGB")
+            with Image.open(
+                image_path
+            ) as image:
+
+                model4_result = (
+                    predict_model4(
+                        image.convert(
+                            "RGB"
+                        )
+                    )
                 )
+
+        except Exception as error:
+
+            result[
+                "model4"
+            ] = {
+
+                "model":
+                    "Model 4A",
+
+                "status":
+                    "failed",
+
+                "error":
+                    str(error),
+
+            }
+
+            result[
+                "pipeline_status"
+            ] = "model4_failed"
+
+            result[
+                "message"
+            ] = (
+                "Model 4A failed during segmentation."
             )
 
+            return result
 
-        result["model4"] = {
+        result[
+            "model4"
+        ] = {
 
             "model":
                 "Model 4A",
@@ -646,30 +699,16 @@ class AnalysisPipeline:
             "experimental":
                 True,
 
+            "status":
+                "success",
+
             "result":
                 model4_result,
+
         }
 
-
         # ====================================================
-        # MODEL 5
-        # ====================================================
-
-        model5_result = (
-            self._run_model5(
-                patient_data=patient_data,
-                model4_result=model4_result,
-            )
-        )
-
-
-        result["model5"] = (
-            model5_result
-        )
-
-
-        # ====================================================
-        # GOOGLE MAPS
+        # GOOGLE MAPS — NEUROSURGERY
         # ====================================================
 
         places_result = (
@@ -678,11 +717,9 @@ class AnalysisPipeline:
             )
         )
 
-
-        result["places"] = (
-            places_result
-        )
-
+        result[
+            "places"
+        ] = places_result
 
         # ====================================================
         # GEMINI
@@ -690,6 +727,7 @@ class AnalysisPipeline:
 
         gemini_result = (
             self._run_gemini(
+
                 modality="CT",
 
                 modality_result=
@@ -704,284 +742,35 @@ class AnalysisPipeline:
                 model4_result=
                     model4_result,
 
-                model5_result=
-                    model5_result,
-
                 location=
                     location,
 
                 places_result=
                     places_result,
+
             )
         )
 
-
-        result["gemini"] = (
-            gemini_result
-        )
-
+        result[
+            "gemini"
+        ] = gemini_result
 
         # ====================================================
         # FINAL STATUS
         # ====================================================
 
-        result["pipeline_status"] = (
-            "completed"
+        result[
+            "pipeline_status"
+        ] = "completed"
+
+        result[
+            "message"
+        ] = (
+            "CT pipeline completed through "
+            "Model 4A, Neurosurgery search and Gemini."
         )
-
-
-        result["message"] = (
-            "CT tumor pipeline completed through "
-            "Model 4A, Model 5, Google Maps and Gemini."
-        )
-
 
         return result
-
-
-    # ========================================================
-    # MODEL 5
-    # ========================================================
-
-    def _run_model5(
-        self,
-        patient_data: Dict[str, Any],
-        model4_result: Optional[
-            Dict[str, Any]
-        ] = None,
-    ) -> Dict[str, Any]:
-
-        # ====================================================
-        # NORMALIZE DATA
-        # ====================================================
-
-        if patient_data is None:
-
-            patient_data = {}
-
-
-        # ====================================================
-        # FIND MISSING FEATURES
-        #
-        # IMPORTANT:
-        #
-        # We ONLY check the actual features expected by the
-        # trained RandomForest model.
-        #
-        # Model 4 measurements are NOT substituted here.
-        # ====================================================
-
-        missing = []
-
-        for feature in self.MODEL5_FEATURES:
-
-            if feature not in patient_data:
-
-                missing.append(
-                    feature
-                )
-
-                continue
-
-
-            value = patient_data.get(
-                feature
-            )
-
-
-            if value is None:
-
-                missing.append(
-                    feature
-                )
-
-                continue
-
-
-            if (
-                isinstance(
-                    value,
-                    str,
-                )
-                and not value.strip()
-            ):
-
-                missing.append(
-                    feature
-                )
-
-
-        # ====================================================
-        # MODEL 4 MEASUREMENTS
-        #
-        # Keep them available for the API/Gemini, but DO NOT
-        # use them as fake MRI acquisition metadata.
-        # ====================================================
-
-        model4_measurements = {}
-
-        if isinstance(
-            model4_result,
-            dict,
-        ):
-
-            measurements = (
-                model4_result.get(
-                    "measurements"
-                )
-            )
-
-            if isinstance(
-                measurements,
-                dict,
-            ):
-
-                model4_measurements = (
-                    measurements
-                )
-
-
-        # ====================================================
-        # MISSING METADATA
-        # ====================================================
-
-        if missing:
-
-            return {
-
-                "available":
-                    False,
-
-                "status":
-                    "missing_metadata",
-
-                "model":
-                    "Model 5",
-
-                "classifier":
-                    "RandomForestClassifier",
-
-                "experimental":
-                    True,
-
-                "prediction":
-                    None,
-
-                "required_features":
-                    self.MODEL5_FEATURES.copy(),
-
-                "provided_features":
-                    list(
-                        patient_data.keys()
-                    ),
-
-                "missing_features":
-                    missing,
-
-                "model4_measurements_available":
-                    bool(
-                        model4_measurements
-                    ),
-
-                "model4_measurements":
-                    model4_measurements,
-
-                "message":
-                    (
-                        "Experimental WHO-grade prediction "
-                        "is unavailable because the MRI "
-                        "metadata required by the trained "
-                        "Model 5 classifier was not supplied. "
-                        "Model 4 tumor measurements were not "
-                        "incorrectly substituted for MRI "
-                        "acquisition metadata."
-                    ),
-            }
-
-
-        # ====================================================
-        # PREDICTION
-        # ====================================================
-
-        try:
-
-            prediction = (
-                predict_model5(
-                    patient_data
-                )
-            )
-
-
-            return {
-
-                "available":
-                    True,
-
-                "status":
-                    "success",
-
-                "model":
-                    "Model 5",
-
-                "classifier":
-                    "RandomForestClassifier",
-
-                "experimental":
-                    True,
-
-                "prediction":
-                    prediction,
-
-                "model4_measurements_available":
-                    bool(
-                        model4_measurements
-                    ),
-
-                "model4_measurements":
-                    model4_measurements,
-            }
-
-
-        except Exception as error:
-
-            return {
-
-                "available":
-                    False,
-
-                "status":
-                    "prediction_failed",
-
-                "model":
-                    "Model 5",
-
-                "classifier":
-                    "RandomForestClassifier",
-
-                "experimental":
-                    True,
-
-                "prediction":
-                    None,
-
-                "model4_measurements_available":
-                    bool(
-                        model4_measurements
-                    ),
-
-                "model4_measurements":
-                    model4_measurements,
-
-                "error":
-                    str(error),
-
-                "message":
-                    (
-                        "Model 5 could not generate an "
-                        "experimental WHO-grade prediction."
-                    ),
-            }
-
 
     # ========================================================
     # GOOGLE MAPS
@@ -1015,11 +804,9 @@ class AnalysisPipeline:
                     None,
 
                 "message":
-                    (
-                        "User location was not provided."
-                    ),
-            }
+                    "User location was not provided.",
 
+            }
 
         # ====================================================
         # GET COORDINATES
@@ -1032,7 +819,6 @@ class AnalysisPipeline:
         longitude = location.get(
             "longitude"
         )
-
 
         if (
             latitude is None
@@ -1058,11 +844,11 @@ class AnalysisPipeline:
                         "Valid latitude and longitude "
                         "are required."
                     ),
+
             }
 
-
         # ====================================================
-        # VALIDATE COORDINATES
+        # CONVERT COORDINATES
         # ====================================================
 
         try:
@@ -1099,8 +885,12 @@ class AnalysisPipeline:
                         "Latitude and longitude must "
                         "be valid numbers."
                     ),
+
             }
 
+        # ====================================================
+        # VALIDATE LATITUDE
+        # ====================================================
 
         if not (
             -90.0
@@ -1124,8 +914,12 @@ class AnalysisPipeline:
 
                 "message":
                     "Invalid latitude.",
+
             }
 
+        # ====================================================
+        # VALIDATE LONGITUDE
+        # ====================================================
 
         if not (
             -180.0
@@ -1149,33 +943,29 @@ class AnalysisPipeline:
 
                 "message":
                     "Invalid longitude.",
+
             }
 
-
         # ====================================================
-        # CREATE GOOGLE MAPS SEARCH URL
-        #
-        # IMPORTANT:
-        #
-        # This used to be:
-        #
-        #     specialist="hospital"
-        #
-        # Now it specifically requests Neurosurgery.
+        # CREATE NEUROSURGERY SEARCH
         # ====================================================
 
         try:
 
             maps_url = (
                 places_service.create_maps_search_url(
-                    specialist="Neurosurgery",
 
-                    latitude=latitude,
+                    specialist=
+                        "Neurosurgery",
 
-                    longitude=longitude,
+                    latitude=
+                        latitude,
+
+                    longitude=
+                        longitude,
+
                 )
             )
-
 
             return {
 
@@ -1190,8 +980,8 @@ class AnalysisPipeline:
 
                 "maps_search_url":
                     maps_url,
-            }
 
+            }
 
         except Exception as error:
 
@@ -1211,8 +1001,8 @@ class AnalysisPipeline:
 
                 "error":
                     str(error),
-            }
 
+            }
 
     # ========================================================
     # GEMINI
@@ -1227,7 +1017,6 @@ class AnalysisPipeline:
             Dict[str, Any]
         ],
         model4_result: Dict[str, Any],
-        model5_result: Dict[str, Any],
         location: Optional[
             Dict[str, float]
         ],
@@ -1235,20 +1024,12 @@ class AnalysisPipeline:
     ) -> Dict[str, Any]:
 
         # ====================================================
-        # EXTRACT ONLY USEFUL MODEL 4 INFORMATION
+        # MODEL 4 SUMMARY
         #
-        # DO NOT send:
-        #
-        # - mask_png_base64
-        # - boundary_png_base64
-        # - overlay_png_base64
-        #
-        # Those are large and unnecessary for the textual
-        # Gemini report.
+        # Do NOT send huge base64 images to Gemini.
         # ====================================================
 
         model4_summary = {}
-
 
         if isinstance(
             model4_result,
@@ -1282,53 +1063,11 @@ class AnalysisPipeline:
                     model4_result.get(
                         "model"
                     ),
+
             }
 
-
         # ====================================================
-        # MODEL 5 SUMMARY
-        # ====================================================
-
-        model5_summary = {}
-
-
-        if isinstance(
-            model5_result,
-            dict,
-        ):
-
-            model5_summary = {
-
-                "available":
-                    model5_result.get(
-                        "available"
-                    ),
-
-                "status":
-                    model5_result.get(
-                        "status"
-                    ),
-
-                "prediction":
-                    model5_result.get(
-                        "prediction"
-                    ),
-
-                "missing_features":
-                    model5_result.get(
-                        "missing_features",
-                        [],
-                    ),
-
-                "message":
-                    model5_result.get(
-                        "message"
-                    ),
-            }
-
-
-        # ====================================================
-        # MODEL 3 SUMMARY
+        # MODEL 3
         # ====================================================
 
         model3_summary = (
@@ -1336,7 +1075,6 @@ class AnalysisPipeline:
             if model3_result is not None
             else None
         )
-
 
         # ====================================================
         # GOOGLE MAPS SUMMARY
@@ -1363,14 +1101,13 @@ class AnalysisPipeline:
                 places_result.get(
                     "maps_search_url"
                 ),
-        }
 
+        }
 
         # ====================================================
         # COMPACT GEMINI PAYLOAD
         #
-        # This is intentionally much smaller than sending the
-        # complete Model 4 response.
+        # Model 5 is intentionally NOT included.
         # ====================================================
 
         pipeline_data = {
@@ -1390,13 +1127,10 @@ class AnalysisPipeline:
             "model4":
                 model4_summary,
 
-            "model5":
-                model5_summary,
-
             "specialist_search":
                 places_summary,
-        }
 
+        }
 
         # ====================================================
         # GEMINI
@@ -1410,7 +1144,6 @@ class AnalysisPipeline:
                 )
             )
 
-
         except Exception as error:
 
             return {
@@ -1423,6 +1156,7 @@ class AnalysisPipeline:
 
                 "error":
                     str(error),
+
             }
 
 
