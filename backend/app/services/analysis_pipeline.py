@@ -1,24 +1,99 @@
+# ============================================================
+# MEDFUSION AI — COMPLETE ANALYSIS PIPELINE
+#
+# Pipeline:
+#
+# MRI:
+#   Model 1
+#      ↓
+#   Model 2A
+#      ↓
+#   Model 3
+#      ↓
+#   Model 4A
+#      ↓
+#   Model 5
+#      ↓
+#   Google Maps — Neurosurgery Hospital
+#      ↓
+#   Gemini
+#
+# CT:
+#   Model 1
+#      ↓
+#   Model 2B
+#      ↓
+#   Model 4A
+#      ↓
+#   Model 5
+#      ↓
+#   Google Maps — Neurosurgery Hospital
+#      ↓
+#   Gemini
+#
+# IMPORTANT:
+#
+# - Missing Model 5 metadata is NEVER fabricated.
+# - Model 4 tumor dimensions are NOT falsely converted into
+#   MRI voxel dimensions.
+# - Gemini receives only useful structured information.
+# - Base64 segmentation images are NOT sent to Gemini.
+# - Google Maps searches specifically for Neurosurgery.
+# ============================================================
+
+
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+
 from PIL import Image
+
+
+# ============================================================
+# MODELS
+# ============================================================
 
 from app.models.modality_model import ModalityModel
 from app.models.mri_detector import MRITumorDetector
 from app.models.ct_detector import CTTumorDetector
-from app.models.model3_classifier import predict_model3
-from app.models.model4_segmentation import predict_model4
-from app.models.model5_who_classifier import predict_model5
 
-from app.services.gemini_service import gemini_service
-from app.services.places_service import places_service
+from app.models.model3_classifier import (
+    predict_model3,
+)
+
+from app.models.model4_segmentation import (
+    predict_model4,
+)
+
+from app.models.model5_who_classifier import (
+    predict_model5,
+)
+
+
+# ============================================================
+# SERVICES
+# ============================================================
+
+from app.services.gemini_service import (
+    gemini_service,
+)
+
+from app.services.places_service import (
+    places_service,
+)
+
+
+# ============================================================
+# PIPELINE
+# ============================================================
 
 
 class AnalysisPipeline:
     """
-    MedFusion AI complete pipeline.
+    MedFusion AI complete analysis pipeline.
 
     MRI:
+
         Model 1
         -> Model 2A
         -> Model 3
@@ -28,6 +103,7 @@ class AnalysisPipeline:
         -> Gemini
 
     CT:
+
         Model 1
         -> Model 2B
         -> Model 4A
@@ -35,20 +111,16 @@ class AnalysisPipeline:
         -> Google Maps
         -> Gemini
 
-    If Model 2 detects no tumor:
-        Pipeline stops.
+    Important:
 
-    IMPORTANT:
-        Model 4A is an MRI segmentation model.
+    Model 5 is experimental and requires the exact metadata
+    features on which its RandomForest classifier was trained.
 
-        CT execution of Model 4A is therefore marked
-        experimental.
+    Missing metadata is never invented.
 
-    IMPORTANT:
-        Model 5 is experimental and requires the metadata
-        on which its classifier was trained.
-
-        We DO NOT invent missing metadata.
+    Model 4 measurements are passed to Gemini as structured
+    information, but are NOT falsely mapped to Model 5 MRI
+    acquisition metadata.
     """
 
     # ========================================================
@@ -56,16 +128,26 @@ class AnalysisPipeline:
     # ========================================================
 
     MODEL5_FEATURES = [
+
         "age",
+
         "sex_category",
+
         "voxel_x_mm",
+
         "voxel_y_mm",
+
         "slice_thickness_mm",
+
         "field_strength_t",
+
         "field_strength_category",
+
         "resolution_category",
+
         "slice_thickness_category",
     ]
+
 
     # ========================================================
     # CONSTRUCTOR
@@ -79,8 +161,11 @@ class AnalysisPipeline:
     ):
 
         self.modality_model = modality_model
+
         self.mri_model = mri_model
+
         self.ct_model = ct_model
+
 
     # ========================================================
     # MAIN PIPELINE
@@ -89,13 +174,22 @@ class AnalysisPipeline:
     def run(
         self,
         image_path: Path,
-        patient_data: Optional[Dict[str, Any]] = None,
-        location: Optional[Dict[str, float]] = None,
+        patient_data: Optional[
+            Dict[str, Any]
+        ] = None,
+        location: Optional[
+            Dict[str, float]
+        ] = None,
     ) -> Dict[str, Any]:
+
+        # ----------------------------------------------------
+        # Normalize image path
+        # ----------------------------------------------------
 
         image_path = Path(
             image_path
         )
+
 
         if not image_path.exists():
 
@@ -103,11 +197,17 @@ class AnalysisPipeline:
                 f"Image not found: {image_path}"
             )
 
+
+        # ----------------------------------------------------
+        # Normalize patient data
+        # ----------------------------------------------------
+
         patient_data = (
             patient_data
             if patient_data is not None
             else {}
         )
+
 
         # ====================================================
         # MODEL 1 — MODALITY
@@ -119,12 +219,14 @@ class AnalysisPipeline:
             )
         )
 
+
         modality = str(
             modality_result.get(
                 "predicted_modality",
                 "",
             )
         ).upper()
+
 
         # ====================================================
         # MRI
@@ -139,6 +241,7 @@ class AnalysisPipeline:
                 location=location,
             )
 
+
         # ====================================================
         # CT
         # ====================================================
@@ -151,6 +254,7 @@ class AnalysisPipeline:
                 patient_data=patient_data,
                 location=location,
             )
+
 
         # ====================================================
         # UNKNOWN MODALITY
@@ -168,6 +272,7 @@ class AnalysisPipeline:
                 "Model 1 returned an unknown modality.",
         }
 
+
     # ========================================================
     # MRI PIPELINE
     # ========================================================
@@ -177,7 +282,9 @@ class AnalysisPipeline:
         image_path: Path,
         modality_result: Dict[str, Any],
         patient_data: Dict[str, Any],
-        location: Optional[Dict[str, float]],
+        location: Optional[
+            Dict[str, float]
+        ],
     ) -> Dict[str, Any]:
 
         # ====================================================
@@ -190,6 +297,7 @@ class AnalysisPipeline:
             )
         )
 
+
         predicted_class = str(
             tumor_detection.get(
                 "predicted_class",
@@ -197,9 +305,15 @@ class AnalysisPipeline:
             )
         ).strip().lower()
 
+
         tumor_detected = (
             predicted_class == "tumor"
         )
+
+
+        # ====================================================
+        # INITIAL RESULT
+        # ====================================================
 
         result = {
 
@@ -225,6 +339,7 @@ class AnalysisPipeline:
                 tumor_detected,
         }
 
+
         # ====================================================
         # NO TUMOR → STOP
         # ====================================================
@@ -242,6 +357,7 @@ class AnalysisPipeline:
 
             return result
 
+
         # ====================================================
         # MODEL 3
         # ====================================================
@@ -256,6 +372,7 @@ class AnalysisPipeline:
                 )
             )
 
+
         result["model3"] = {
 
             "model":
@@ -265,17 +382,9 @@ class AnalysisPipeline:
                 model3_result,
         }
 
+
         # ====================================================
         # MODEL 4A
-        #
-        # IMPORTANT:
-        # predict_model4() already returns:
-        #
-        # - mask_png_base64
-        # - boundary_png_base64
-        # - overlay_png_base64
-        #
-        # We preserve the complete result.
         # ====================================================
 
         with Image.open(
@@ -287,6 +396,7 @@ class AnalysisPipeline:
                     image.convert("RGB")
                 )
             )
+
 
         result["model4"] = {
 
@@ -303,6 +413,7 @@ class AnalysisPipeline:
                 model4_result,
         }
 
+
         # ====================================================
         # MODEL 4 SAFETY CHECK
         # ====================================================
@@ -313,6 +424,7 @@ class AnalysisPipeline:
                 False,
             )
         )
+
 
         if not model4_tumor_detected:
 
@@ -328,19 +440,23 @@ class AnalysisPipeline:
 
             return result
 
+
         # ====================================================
         # MODEL 5
         # ====================================================
 
         model5_result = (
             self._run_model5(
-                patient_data
+                patient_data=patient_data,
+                model4_result=model4_result,
             )
         )
+
 
         result["model5"] = (
             model5_result
         )
+
 
         # ====================================================
         # GOOGLE MAPS
@@ -352,9 +468,11 @@ class AnalysisPipeline:
             )
         )
 
+
         result["places"] = (
             places_result
         )
+
 
         # ====================================================
         # GEMINI
@@ -363,18 +481,35 @@ class AnalysisPipeline:
         gemini_result = (
             self._run_gemini(
                 modality="MRI",
-                modality_result=modality_result,
-                tumor_detection=tumor_detection,
-                model3_result=model3_result,
-                model4_result=model4_result,
-                model5_result=model5_result,
-                location=location,
+
+                modality_result=
+                    modality_result,
+
+                tumor_detection=
+                    tumor_detection,
+
+                model3_result=
+                    model3_result,
+
+                model4_result=
+                    model4_result,
+
+                model5_result=
+                    model5_result,
+
+                location=
+                    location,
+
+                places_result=
+                    places_result,
             )
         )
+
 
         result["gemini"] = (
             gemini_result
         )
+
 
         # ====================================================
         # FINAL STATUS
@@ -384,12 +519,15 @@ class AnalysisPipeline:
             "completed"
         )
 
+
         result["message"] = (
             "MRI pipeline completed through "
-            "Model 4A, Model 5 and Gemini."
+            "Model 4A, Model 5, Google Maps and Gemini."
         )
 
+
         return result
+
 
     # ========================================================
     # CT PIPELINE
@@ -400,7 +538,9 @@ class AnalysisPipeline:
         image_path: Path,
         modality_result: Dict[str, Any],
         patient_data: Dict[str, Any],
-        location: Optional[Dict[str, float]],
+        location: Optional[
+            Dict[str, float]
+        ],
     ) -> Dict[str, Any]:
 
         # ====================================================
@@ -413,6 +553,7 @@ class AnalysisPipeline:
             )
         )
 
+
         predicted_class = str(
             tumor_detection.get(
                 "predicted_class",
@@ -420,9 +561,15 @@ class AnalysisPipeline:
             )
         ).strip().lower()
 
+
         tumor_detected = (
             predicted_class == "tumor"
         )
+
+
+        # ====================================================
+        # INITIAL RESULT
+        # ====================================================
 
         result = {
 
@@ -448,6 +595,7 @@ class AnalysisPipeline:
                 tumor_detected,
         }
 
+
         # ====================================================
         # NO TUMOR → STOP
         # ====================================================
@@ -465,12 +613,12 @@ class AnalysisPipeline:
 
             return result
 
+
         # ====================================================
         # MODEL 4A
         #
-        # WARNING:
         # Model 4A was trained for MRI.
-        # Therefore this remains experimental.
+        # CT usage remains experimental.
         # ====================================================
 
         with Image.open(
@@ -482,6 +630,7 @@ class AnalysisPipeline:
                     image.convert("RGB")
                 )
             )
+
 
         result["model4"] = {
 
@@ -501,19 +650,23 @@ class AnalysisPipeline:
                 model4_result,
         }
 
+
         # ====================================================
         # MODEL 5
         # ====================================================
 
         model5_result = (
             self._run_model5(
-                patient_data
+                patient_data=patient_data,
+                model4_result=model4_result,
             )
         )
+
 
         result["model5"] = (
             model5_result
         )
+
 
         # ====================================================
         # GOOGLE MAPS
@@ -525,9 +678,11 @@ class AnalysisPipeline:
             )
         )
 
+
         result["places"] = (
             places_result
         )
+
 
         # ====================================================
         # GEMINI
@@ -536,29 +691,53 @@ class AnalysisPipeline:
         gemini_result = (
             self._run_gemini(
                 modality="CT",
-                modality_result=modality_result,
-                tumor_detection=tumor_detection,
-                model3_result=None,
-                model4_result=model4_result,
-                model5_result=model5_result,
-                location=location,
+
+                modality_result=
+                    modality_result,
+
+                tumor_detection=
+                    tumor_detection,
+
+                model3_result=
+                    None,
+
+                model4_result=
+                    model4_result,
+
+                model5_result=
+                    model5_result,
+
+                location=
+                    location,
+
+                places_result=
+                    places_result,
             )
         )
+
 
         result["gemini"] = (
             gemini_result
         )
 
+
+        # ====================================================
+        # FINAL STATUS
+        # ====================================================
+
         result["pipeline_status"] = (
             "completed"
         )
 
+
         result["message"] = (
             "CT tumor pipeline completed through "
-            "Model 4A, Model 5 and Gemini."
+            "Model 4A, Model 5, Google Maps and Gemini."
         )
 
+
         return result
+
 
     # ========================================================
     # MODEL 5
@@ -567,25 +746,100 @@ class AnalysisPipeline:
     def _run_model5(
         self,
         patient_data: Dict[str, Any],
+        model4_result: Optional[
+            Dict[str, Any]
+        ] = None,
     ) -> Dict[str, Any]:
 
         # ====================================================
-        # FIND MISSING FEATURES
+        # NORMALIZE DATA
         # ====================================================
 
-        missing = [
+        if patient_data is None:
 
-            feature
+            patient_data = {}
 
-            for feature
-            in self.MODEL5_FEATURES
 
-            if (
+        # ====================================================
+        # FIND MISSING FEATURES
+        #
+        # IMPORTANT:
+        #
+        # We ONLY check the actual features expected by the
+        # trained RandomForest model.
+        #
+        # Model 4 measurements are NOT substituted here.
+        # ====================================================
+
+        missing = []
+
+        for feature in self.MODEL5_FEATURES:
+
+            if feature not in patient_data:
+
+                missing.append(
+                    feature
+                )
+
+                continue
+
+
+            value = patient_data.get(
                 feature
-                not in patient_data
             )
 
-        ]
+
+            if value is None:
+
+                missing.append(
+                    feature
+                )
+
+                continue
+
+
+            if (
+                isinstance(
+                    value,
+                    str,
+                )
+                and not value.strip()
+            ):
+
+                missing.append(
+                    feature
+                )
+
+
+        # ====================================================
+        # MODEL 4 MEASUREMENTS
+        #
+        # Keep them available for the API/Gemini, but DO NOT
+        # use them as fake MRI acquisition metadata.
+        # ====================================================
+
+        model4_measurements = {}
+
+        if isinstance(
+            model4_result,
+            dict,
+        ):
+
+            measurements = (
+                model4_result.get(
+                    "measurements"
+                )
+            )
+
+            if isinstance(
+                measurements,
+                dict,
+            ):
+
+                model4_measurements = (
+                    measurements
+                )
+
 
         # ====================================================
         # MISSING METADATA
@@ -601,11 +855,20 @@ class AnalysisPipeline:
                 "status":
                     "missing_metadata",
 
+                "model":
+                    "Model 5",
+
+                "classifier":
+                    "RandomForestClassifier",
+
                 "experimental":
                     True,
 
+                "prediction":
+                    None,
+
                 "required_features":
-                    self.MODEL5_FEATURES,
+                    self.MODEL5_FEATURES.copy(),
 
                 "provided_features":
                     list(
@@ -615,14 +878,26 @@ class AnalysisPipeline:
                 "missing_features":
                     missing,
 
+                "model4_measurements_available":
+                    bool(
+                        model4_measurements
+                    ),
+
+                "model4_measurements":
+                    model4_measurements,
+
                 "message":
                     (
-                        "Model 5 was not executed because "
-                        "its required trained features were "
-                        "not supplied. Missing metadata was "
-                        "not fabricated."
+                        "Experimental WHO-grade prediction "
+                        "is unavailable because the MRI "
+                        "metadata required by the trained "
+                        "Model 5 classifier was not supplied. "
+                        "Model 4 tumor measurements were not "
+                        "incorrectly substituted for MRI "
+                        "acquisition metadata."
                     ),
             }
+
 
         # ====================================================
         # PREDICTION
@@ -635,6 +910,7 @@ class AnalysisPipeline:
                     patient_data
                 )
             )
+
 
             return {
 
@@ -655,7 +931,16 @@ class AnalysisPipeline:
 
                 "prediction":
                     prediction,
+
+                "model4_measurements_available":
+                    bool(
+                        model4_measurements
+                    ),
+
+                "model4_measurements":
+                    model4_measurements,
             }
+
 
         except Exception as error:
 
@@ -667,12 +952,36 @@ class AnalysisPipeline:
                 "status":
                     "prediction_failed",
 
+                "model":
+                    "Model 5",
+
+                "classifier":
+                    "RandomForestClassifier",
+
                 "experimental":
                     True,
 
+                "prediction":
+                    None,
+
+                "model4_measurements_available":
+                    bool(
+                        model4_measurements
+                    ),
+
+                "model4_measurements":
+                    model4_measurements,
+
                 "error":
                     str(error),
+
+                "message":
+                    (
+                        "Model 5 could not generate an "
+                        "experimental WHO-grade prediction."
+                    ),
             }
+
 
     # ========================================================
     # GOOGLE MAPS
@@ -680,7 +989,9 @@ class AnalysisPipeline:
 
     @staticmethod
     def _run_places(
-        location: Optional[Dict[str, float]],
+        location: Optional[
+            Dict[str, float]
+        ],
     ) -> Dict[str, Any]:
 
         # ====================================================
@@ -697,12 +1008,18 @@ class AnalysisPipeline:
                 "status":
                     "location_not_provided",
 
+                "search_type":
+                    "Neurosurgery",
+
                 "maps_search_url":
                     None,
 
                 "message":
-                    "User location was not provided.",
+                    (
+                        "User location was not provided."
+                    ),
             }
+
 
         # ====================================================
         # GET COORDINATES
@@ -716,7 +1033,11 @@ class AnalysisPipeline:
             "longitude"
         )
 
-        if latitude is None or longitude is None:
+
+        if (
+            latitude is None
+            or longitude is None
+        ):
 
             return {
 
@@ -726,26 +1047,135 @@ class AnalysisPipeline:
                 "status":
                     "invalid_location",
 
+                "search_type":
+                    "Neurosurgery",
+
                 "maps_search_url":
                     None,
 
                 "message":
-                    "Valid latitude and longitude are required.",
+                    (
+                        "Valid latitude and longitude "
+                        "are required."
+                    ),
             }
+
+
+        # ====================================================
+        # VALIDATE COORDINATES
+        # ====================================================
+
+        try:
+
+            latitude = float(
+                latitude
+            )
+
+            longitude = float(
+                longitude
+            )
+
+        except (
+            TypeError,
+            ValueError,
+        ):
+
+            return {
+
+                "available":
+                    False,
+
+                "status":
+                    "invalid_location",
+
+                "search_type":
+                    "Neurosurgery",
+
+                "maps_search_url":
+                    None,
+
+                "message":
+                    (
+                        "Latitude and longitude must "
+                        "be valid numbers."
+                    ),
+            }
+
+
+        if not (
+            -90.0
+            <= latitude
+            <= 90.0
+        ):
+
+            return {
+
+                "available":
+                    False,
+
+                "status":
+                    "invalid_latitude",
+
+                "search_type":
+                    "Neurosurgery",
+
+                "maps_search_url":
+                    None,
+
+                "message":
+                    "Invalid latitude.",
+            }
+
+
+        if not (
+            -180.0
+            <= longitude
+            <= 180.0
+        ):
+
+            return {
+
+                "available":
+                    False,
+
+                "status":
+                    "invalid_longitude",
+
+                "search_type":
+                    "Neurosurgery",
+
+                "maps_search_url":
+                    None,
+
+                "message":
+                    "Invalid longitude.",
+            }
+
 
         # ====================================================
         # CREATE GOOGLE MAPS SEARCH URL
+        #
+        # IMPORTANT:
+        #
+        # This used to be:
+        #
+        #     specialist="hospital"
+        #
+        # Now it specifically requests Neurosurgery.
         # ====================================================
 
         try:
 
             maps_url = (
                 places_service.create_maps_search_url(
-                    specialist="hospital",
-                    latitude=float(latitude),
-                    longitude=float(longitude),
+                    specialist="Neurosurgery",
+
+                    latitude=latitude,
+
+                    longitude=longitude,
                 )
             )
+
 
             return {
 
@@ -756,11 +1186,12 @@ class AnalysisPipeline:
                     "success",
 
                 "search_type":
-                    "hospital",
+                    "Neurosurgery hospital",
 
                 "maps_search_url":
                     maps_url,
             }
+
 
         except Exception as error:
 
@@ -772,12 +1203,16 @@ class AnalysisPipeline:
                 "status":
                     "maps_url_generation_failed",
 
+                "search_type":
+                    "Neurosurgery hospital",
+
                 "maps_search_url":
                     None,
 
                 "error":
                     str(error),
             }
+
 
     # ========================================================
     # GEMINI
@@ -788,14 +1223,154 @@ class AnalysisPipeline:
         modality: str,
         modality_result: Dict[str, Any],
         tumor_detection: Dict[str, Any],
-        model3_result: Optional[Dict[str, Any]],
+        model3_result: Optional[
+            Dict[str, Any]
+        ],
         model4_result: Dict[str, Any],
         model5_result: Dict[str, Any],
-        location: Optional[Dict[str, float]],
+        location: Optional[
+            Dict[str, float]
+        ],
+        places_result: Dict[str, Any],
     ) -> Dict[str, Any]:
 
         # ====================================================
-        # DATA SENT TO GEMINI
+        # EXTRACT ONLY USEFUL MODEL 4 INFORMATION
+        #
+        # DO NOT send:
+        #
+        # - mask_png_base64
+        # - boundary_png_base64
+        # - overlay_png_base64
+        #
+        # Those are large and unnecessary for the textual
+        # Gemini report.
+        # ====================================================
+
+        model4_summary = {}
+
+
+        if isinstance(
+            model4_result,
+            dict,
+        ):
+
+            model4_summary = {
+
+                "tumor_detected":
+                    model4_result.get(
+                        "tumor_detected"
+                    ),
+
+                "input_image":
+                    model4_result.get(
+                        "input_image"
+                    ),
+
+                "processed_image":
+                    model4_result.get(
+                        "processed_image"
+                    ),
+
+                "measurements":
+                    model4_result.get(
+                        "measurements",
+                        {},
+                    ),
+
+                "model":
+                    model4_result.get(
+                        "model"
+                    ),
+            }
+
+
+        # ====================================================
+        # MODEL 5 SUMMARY
+        # ====================================================
+
+        model5_summary = {}
+
+
+        if isinstance(
+            model5_result,
+            dict,
+        ):
+
+            model5_summary = {
+
+                "available":
+                    model5_result.get(
+                        "available"
+                    ),
+
+                "status":
+                    model5_result.get(
+                        "status"
+                    ),
+
+                "prediction":
+                    model5_result.get(
+                        "prediction"
+                    ),
+
+                "missing_features":
+                    model5_result.get(
+                        "missing_features",
+                        [],
+                    ),
+
+                "message":
+                    model5_result.get(
+                        "message"
+                    ),
+            }
+
+
+        # ====================================================
+        # MODEL 3 SUMMARY
+        # ====================================================
+
+        model3_summary = (
+            model3_result
+            if model3_result is not None
+            else None
+        )
+
+
+        # ====================================================
+        # GOOGLE MAPS SUMMARY
+        # ====================================================
+
+        places_summary = {
+
+            "available":
+                places_result.get(
+                    "available"
+                ),
+
+            "status":
+                places_result.get(
+                    "status"
+                ),
+
+            "search_type":
+                places_result.get(
+                    "search_type"
+                ),
+
+            "maps_search_url":
+                places_result.get(
+                    "maps_search_url"
+                ),
+        }
+
+
+        # ====================================================
+        # COMPACT GEMINI PAYLOAD
+        #
+        # This is intentionally much smaller than sending the
+        # complete Model 4 response.
         # ====================================================
 
         pipeline_data = {
@@ -810,16 +1385,18 @@ class AnalysisPipeline:
                 tumor_detection,
 
             "model3":
-                model3_result,
+                model3_summary,
 
-            # IMPORTANT:
-            # This contains the Model 4 visual outputs.
             "model4":
-                model4_result,
+                model4_summary,
 
             "model5":
-                model5_result,
+                model5_summary,
+
+            "specialist_search":
+                places_summary,
         }
+
 
         # ====================================================
         # GEMINI
@@ -832,6 +1409,7 @@ class AnalysisPipeline:
                     pipeline_data
                 )
             )
+
 
         except Exception as error:
 
@@ -849,10 +1427,5 @@ class AnalysisPipeline:
 
 
 # ============================================================
-# NOTE:
-# `location` is still accepted by `_run_gemini()` so the
-# existing pipeline call structure is preserved.
-#
-# It is intentionally NOT included in `pipeline_data`.
-# Google Maps handles location separately.
+# END OF ANALYSIS PIPELINE
 # ============================================================

@@ -8,12 +8,28 @@ class PlacesService:
     No Google Maps API key is required.
     """
 
+    # ========================================================
+    # SPECIALIST SEARCH TERMS
+    # ========================================================
+
     SPECIALIST_SEARCH_TERMS = {
-        "Neurosurgery": "neurosurgery",
-        "Neuro-oncology": "neuro oncology",
-        "Endocrinology": "endocrinology",
-        "Neuroradiology": "neuroradiology",
+
+        "Neurosurgery":
+            "neurosurgery hospital",
+
+        "Neuro-oncology":
+            "neuro oncology hospital",
+
+        "Endocrinology":
+            "endocrinology hospital",
+
+        "Neuroradiology":
+            "neuroradiology hospital",
     }
+
+    # ========================================================
+    # CREATE GOOGLE MAPS SEARCH URL
+    # ========================================================
 
     @staticmethod
     def create_maps_search_url(
@@ -21,6 +37,18 @@ class PlacesService:
         latitude: float,
         longitude: float,
     ) -> str:
+        """
+        Create a Google Maps search URL centered around the
+        user's current latitude and longitude.
+
+        Example search:
+
+            neurosurgery hospital near 12.9716,77.5946
+        """
+
+        # ----------------------------------------------------
+        # Get specialist-specific search term
+        # ----------------------------------------------------
 
         search_term = (
             PlacesService.SPECIALIST_SEARCH_TERMS.get(
@@ -29,17 +57,36 @@ class PlacesService:
             )
         )
 
+        # ----------------------------------------------------
+        # Build search query
+        # ----------------------------------------------------
+
         query = (
             f"{search_term} near "
             f"{latitude},{longitude}"
         )
 
+        # ----------------------------------------------------
+        # Encode query safely
+        # ----------------------------------------------------
+
+        encoded_query = quote(
+            query
+        )
+
+        # ----------------------------------------------------
+        # Return Google Maps URL
+        # ----------------------------------------------------
+
         return (
             "https://www.google.com/maps/search/"
             "?api=1&query="
-            + quote(query)
+            + encoded_query
         )
 
 
-places_service = PlacesService()
+# ============================================================
+# GLOBAL SERVICE INSTANCE
+# ============================================================
 
+places_service = PlacesService()
