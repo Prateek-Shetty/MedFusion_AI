@@ -1,0 +1,2128 @@
+/* ============================================================
+   MEDFUSION AI — 3D BRAIN VISUALIZATION
+   ============================================================ */
+
+.brain-page {
+  min-height: 100vh;
+  width: 100%;
+
+  padding:
+    0
+    clamp(12px, 2.2vw, 30px)
+    45px;
+
+  background:
+    radial-gradient(
+      circle at 8% 0%,
+      rgba(30, 115, 190, 0.14),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 92% 8%,
+      rgba(20, 184, 166, 0.07),
+      transparent 26%
+    ),
+    #050d17;
+
+  color: #edf5ff;
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.brain-header {
+  width: min(1500px, 100%);
+
+  min-height: 82px;
+
+  margin: 0 auto;
+
+  display: grid;
+
+  grid-template-columns:
+    minmax(210px, 1fr)
+    minmax(300px, 1.3fr)
+    minmax(210px, 1fr);
+
+  align-items: center;
+
+  gap: 25px;
+
+  border-bottom:
+    1px solid #172a40;
+}
+
+
+.brain-brand {
+  display: flex;
+
+  align-items: center;
+
+  gap: 11px;
+}
+
+
+.brain-logo {
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #12345b,
+      #0b2038
+    );
+
+  border:
+    1px solid #1c5d91;
+
+  color:
+    #35b9ff;
+
+  font-size: 21px;
+
+  box-shadow:
+    0 0 24px
+    rgba(30, 144, 255, 0.12);
+}
+
+
+.brain-brand-name {
+  font-size: 18px;
+
+  font-weight: 800;
+
+  letter-spacing:
+    -0.025em;
+}
+
+
+.brain-brand-name span {
+  color:
+    #36b7ff;
+}
+
+
+.brain-brand-subtitle {
+  margin-top:
+    2px;
+
+  color:
+    #7890aa;
+
+  font-size:
+    10px;
+}
+
+
+.brain-header-center {
+  text-align:
+    center;
+}
+
+
+.brain-kicker,
+.brain-label {
+  color:
+    #38bdf8;
+
+  font-size:
+    9px;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    0.14em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.brain-header-center h1 {
+  margin:
+    5px 0 3px;
+
+  font-size:
+    clamp(21px, 2.1vw, 28px);
+
+  line-height:
+    1.1;
+
+  letter-spacing:
+    -0.035em;
+}
+
+
+.brain-header-center p {
+  margin:
+    0;
+
+  color:
+    #748ba5;
+
+  font-size:
+    10px;
+}
+
+
+.back-results-button {
+  justify-self:
+    end;
+
+  padding:
+    9px 14px;
+
+  border:
+    1px solid #1e5d8c;
+
+  border-radius:
+    8px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #0d3260,
+      #08234a
+    );
+
+  color:
+    #e6f4ff;
+
+  cursor:
+    pointer;
+
+  font-size:
+    11px;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+
+.back-results-button:hover {
+  transform:
+    translateY(-1px);
+
+  border-color:
+    #36b7ff;
+
+  background:
+    #0d3968;
+}
+
+
+/* ============================================================
+   INTRO
+   ============================================================ */
+
+.brain-intro {
+  width:
+    min(1500px, 100%);
+
+  margin:
+    17px auto;
+
+  padding:
+    15px 17px;
+
+  display:
+    grid;
+
+  grid-template-columns:
+    auto
+    minmax(0, 1fr)
+    minmax(270px, 340px);
+
+  gap:
+    15px;
+
+  align-items:
+    center;
+
+  border:
+    1px solid #19324d;
+
+  border-radius:
+    13px;
+
+  background:
+    linear-gradient(
+      100deg,
+      rgba(10, 29, 48, 0.95),
+      rgba(6, 20, 34, 0.95)
+    );
+}
+
+
+.intro-icon {
+  width:
+    46px;
+
+  height:
+    46px;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  border-radius:
+    11px;
+
+  background:
+    #081d32;
+
+  border:
+    1px solid #164b73;
+
+  color:
+    #3cbcff;
+
+  font-size:
+    22px;
+}
+
+
+.brain-intro h2 {
+  margin:
+    4px 0;
+
+  font-size:
+    17px;
+
+  letter-spacing:
+    -0.02em;
+}
+
+
+.brain-intro p {
+  margin:
+    0;
+
+  color:
+    #8196ae;
+
+  font-size:
+    11px;
+
+  line-height:
+    1.5;
+}
+
+
+.intro-warning {
+  display:
+    flex;
+
+  align-items:
+    flex-start;
+
+  gap:
+    9px;
+
+  padding-left:
+    15px;
+
+  border-left:
+    1px solid #243c55;
+}
+
+
+.intro-warning span {
+  color:
+    #62a9d7;
+
+  font-size:
+    15px;
+}
+
+
+.intro-warning p {
+  color:
+    #8499b0;
+}
+
+
+/* ============================================================
+   VIEWERS
+   ============================================================ */
+
+.brain-viewers {
+  width:
+    min(1500px, 100%);
+
+  margin:
+    0 auto;
+
+  display:
+    grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  gap:
+    18px;
+
+  align-items:
+    start;
+}
+
+
+.brain-card {
+  min-width:
+    0;
+
+  overflow:
+    hidden;
+
+  border:
+    1px solid #1b3854;
+
+  border-radius:
+    15px;
+
+  background:
+    linear-gradient(
+      160deg,
+      #081727,
+      #06111e
+    );
+
+  box-shadow:
+    0 22px 55px
+    rgba(0, 0, 0, 0.25);
+}
+
+
+.tumor-card {
+  border-color:
+    #53303a;
+}
+
+
+/* ============================================================
+   CARD HEADER
+   ============================================================ */
+
+.brain-card-header {
+  min-height:
+    75px;
+
+  padding:
+    14px 17px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    12px;
+
+  border-bottom:
+    1px solid #172d45;
+}
+
+
+.brain-card-header h2 {
+  margin:
+    4px 0 2px;
+
+  font-size:
+    19px;
+
+  letter-spacing:
+    -0.025em;
+}
+
+
+.brain-card-header p {
+  margin:
+    0;
+
+  color:
+    #7188a2;
+
+  font-size:
+    10px;
+}
+
+
+.brain-chip {
+  padding:
+    6px 9px;
+
+  border-radius:
+    999px;
+
+  border:
+    1px solid #284661;
+
+  background:
+    #0a1d30;
+
+  color:
+    #94aac0;
+
+  font-size:
+    9px;
+
+  white-space:
+    nowrap;
+}
+
+
+.red-label {
+  color:
+    #ff6666 !important;
+}
+
+
+.red-chip {
+  border-color:
+    #63333c;
+
+  color:
+    #ff7777;
+
+  background:
+    rgba(120, 25, 32, 0.12);
+}
+
+
+/* ============================================================
+   CANVAS
+   ============================================================ */
+
+.brain-canvas {
+  position:
+    relative;
+
+  width:
+    100%;
+
+  height:
+    clamp(
+      340px,
+      47vh,
+      525px
+    );
+
+  overflow:
+    hidden;
+
+  background:
+    radial-gradient(
+      circle at 50% 45%,
+      rgba(26, 61, 87, 0.5),
+      rgba(3, 11, 20, 0.98) 72%
+    );
+}
+
+
+.brain-canvas canvas {
+  display:
+    block !important;
+
+  width:
+    100% !important;
+
+  height:
+    100% !important;
+}
+
+
+/* ============================================================
+   VIEWER CONTROLS
+   ============================================================ */
+
+.viewer-controls {
+  position:
+    absolute;
+
+  left:
+    12px;
+
+  bottom:
+    12px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  flex-wrap:
+    wrap;
+
+  gap:
+    5px;
+
+  max-width:
+    calc(100% - 24px);
+
+  padding:
+    6px 8px;
+
+  border:
+    1px solid #1b344e;
+
+  border-radius:
+    7px;
+
+  background:
+    rgba(5, 15, 26, 0.82);
+
+  -webkit-backdrop-filter:
+    blur(8px);
+
+  backdrop-filter:
+    blur(8px);
+
+  color:
+    #7188a0;
+
+  font-size:
+    8px;
+
+  pointer-events:
+    none;
+}
+
+
+.viewer-controls span {
+  white-space:
+    nowrap;
+}
+
+
+/* ============================================================
+   FLOATING LABELS
+   ============================================================ */
+
+.tumor-floating-label,
+.lock-floating-label {
+  position:
+    absolute;
+
+  right:
+    12px;
+
+  padding:
+    6px 9px;
+
+  border-radius:
+    7px;
+
+  font-size:
+    8px;
+
+  pointer-events:
+    none;
+
+  -webkit-backdrop-filter:
+    blur(7px);
+  backdrop-filter:
+    blur(7px);
+}
+
+
+.tumor-floating-label {
+  top:
+    12px;
+
+  border:
+    1px solid #74343b;
+
+  background:
+    rgba(57, 10, 15, 0.72);
+
+  color:
+    #ff8686;
+}
+
+
+.tumor-floating-label span {
+  margin-right:
+    5px;
+
+  color:
+    #ff3030;
+}
+
+
+.lock-floating-label {
+  top:
+    43px;
+
+  border:
+    1px solid #6b5360;
+
+  background:
+    rgba(27, 18, 28, 0.8);
+
+  color:
+    #d2bac7;
+}
+
+
+/* ============================================================
+   CONTROL SECTIONS
+   ============================================================ */
+
+.reference-controls,
+.tumor-controls {
+  padding:
+    15px 17px 14px;
+}
+
+
+.reference-controls {
+  border-top:
+    1px solid #172d45;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8, 24, 40, 0.9),
+      rgba(6, 17, 29, 0.98)
+    );
+}
+
+
+.tumor-controls {
+  border-top:
+    1px solid #3a252d;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(48, 17, 23, 0.22),
+      rgba(7, 17, 28, 0.98)
+    );
+}
+
+
+.control-heading {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    12px;
+
+  margin-bottom:
+    12px;
+}
+
+
+.control-heading h3 {
+  margin:
+    4px 0 0;
+
+  font-size:
+    14px;
+}
+
+
+.small-control {
+  padding:
+    7px 9px;
+
+  border:
+    1px solid #28435d;
+
+  border-radius:
+    7px;
+
+  background:
+    #0a1b2d;
+
+  color:
+    #91a8bd;
+
+  cursor:
+    pointer;
+
+  font-size:
+    9px;
+}
+
+
+.small-control:hover {
+  border-color:
+    #3c76a0;
+
+  color:
+    #d3e3f1;
+}
+
+
+/* ============================================================
+   COLOR CONTROLS
+   ============================================================ */
+
+.color-row {
+  margin-bottom:
+    12px;
+}
+
+
+.color-row > span {
+  display:
+    block;
+
+  margin-bottom:
+    7px;
+
+  color:
+    #849ab0;
+
+  font-size:
+    9px;
+}
+
+
+.color-options {
+  display:
+    flex;
+
+  flex-wrap:
+    wrap;
+
+  gap:
+    6px;
+}
+
+
+.color-option {
+  display:
+    inline-flex;
+
+  align-items:
+    center;
+
+  gap:
+    5px;
+
+  padding:
+    6px 8px;
+
+  border:
+    1px solid #203950;
+
+  border-radius:
+    7px;
+
+  background:
+    #091a2a;
+
+  color:
+    #8096ac;
+
+  cursor:
+    pointer;
+
+  font-size:
+    8px;
+
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+
+
+.color-option:hover {
+  transform:
+    translateY(-1px);
+
+  color:
+    #dbe8f3;
+}
+
+
+.color-option.selected {
+  border-color:
+    #3784b5;
+
+  color:
+    #dcecf8;
+
+  background:
+    #0c2439;
+
+  box-shadow:
+    0 0 0 1px
+    rgba(56, 189, 248, 0.06);
+}
+
+
+.color-option > span {
+  width:
+    12px;
+
+  height:
+    12px;
+
+  flex:
+    0 0 auto;
+
+  border-radius:
+    50%;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.25);
+}
+
+
+/* ============================================================
+   TUMOR BRAIN APPEARANCE
+   ============================================================ */
+
+.tumor-appearance {
+  margin-bottom:
+    12px;
+
+  padding:
+    10px;
+
+  border:
+    1px solid #3a2930;
+
+  border-radius:
+    9px;
+
+  background:
+    rgba(17, 12, 20, 0.42);
+}
+
+
+.appearance-title {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    10px;
+
+  margin-bottom:
+    8px;
+}
+
+
+.appearance-title > span:last-child {
+  color:
+    #66798b;
+
+  font-size:
+    8px;
+}
+
+
+.tumor-color-options {
+  gap:
+    5px;
+}
+
+
+.tumor-color-option {
+  padding:
+    5px 7px;
+
+  font-size:
+    7.5px;
+}
+
+
+.tumor-color-option.selected {
+  border-color:
+    #9d4650;
+
+  background:
+    #2b171d;
+
+  color:
+    #ffd6d9;
+}
+
+
+.tumor-brain-opacity {
+  margin-top:
+    10px;
+}
+
+
+/* ============================================================
+   RANGE CONTROLS
+   ============================================================ */
+
+.control-row {
+  margin-top:
+    11px;
+}
+
+
+.control-row > div {
+  display:
+    flex;
+
+  justify-content:
+    space-between;
+
+  gap:
+    10px;
+
+  margin-bottom:
+    5px;
+}
+
+
+.control-row span {
+  color:
+    #849ab0;
+
+  font-size:
+    9px;
+}
+
+
+.control-row small {
+  color:
+    #69b9e9;
+
+  font-size:
+    9px;
+}
+
+
+.tumor-controls .control-row small {
+  color:
+    #ff7777;
+}
+
+
+.control-row input[type="range"] {
+  width:
+    100%;
+
+  height:
+    4px;
+
+  accent-color:
+    #3d9dd5;
+
+  cursor:
+    pointer;
+}
+
+
+.tumor-controls
+.control-row
+input[type="range"] {
+  accent-color:
+    #e33c43;
+}
+
+
+/* ============================================================
+   LOCK
+   ============================================================ */
+
+.lock-row {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    12px;
+
+  padding:
+    9px 10px;
+
+  border:
+    1px solid #3b2830;
+
+  border-radius:
+    8px;
+
+  background:
+    rgba(25, 12, 17, 0.42);
+}
+
+
+.lock-row strong {
+  display:
+    block;
+
+  color:
+    #b9c7d5;
+
+  font-size:
+    9px;
+}
+
+
+.lock-row small {
+  display:
+    block;
+
+  margin-top:
+    3px;
+
+  color:
+    #6f8397;
+
+  font-size:
+    8px;
+}
+
+
+.lock-button {
+  flex:
+    0 0 auto;
+
+  padding:
+    7px 9px;
+
+  border:
+    1px solid #71343d;
+
+  border-radius:
+    7px;
+
+  background:
+    #261319;
+
+  color:
+    #f08a91;
+
+  cursor:
+    pointer;
+
+  font-size:
+    8px;
+}
+
+
+.lock-button:hover {
+  border-color:
+    #a34b55;
+}
+
+
+.lock-button.locked {
+  border-color:
+    #8d5d67;
+
+  background:
+    #351e27;
+
+  color:
+    #ffd0d5;
+}
+
+
+/* ============================================================
+   TOGGLE
+   ============================================================ */
+
+.toggle {
+  width:
+    41px;
+
+  height:
+    23px;
+
+  padding:
+    3px;
+
+  border:
+    1px solid #4c343a;
+
+  border-radius:
+    999px;
+
+  background:
+    #21161b;
+
+  cursor:
+    pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+
+.toggle span {
+  display:
+    block;
+
+  width:
+    15px;
+
+  height:
+    15px;
+
+  border-radius:
+    50%;
+
+  background:
+    #84909b;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+
+.toggle-active {
+  border-color:
+    #d93640;
+
+  background:
+    #e33c43;
+}
+
+
+.toggle-active span {
+  transform:
+    translateX(17px);
+
+  background:
+    white;
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.reference-action-row,
+.tumor-action-row {
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr
+    1fr;
+
+  gap:
+    7px;
+
+  margin-top:
+    12px;
+}
+
+
+.secondary-control,
+.primary-control {
+  min-height:
+    31px;
+
+  padding:
+    7px 9px;
+
+  border-radius:
+    7px;
+
+  font-size:
+    9px;
+
+  cursor:
+    pointer;
+
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+
+.secondary-control {
+  border:
+    1px solid #28435b;
+
+  background:
+    #091b2c;
+
+  color:
+    #94a9bc;
+}
+
+
+.secondary-control:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+
+  border-color:
+    #3d6787;
+
+  color:
+    #d5e5f1;
+}
+
+
+.secondary-control.control-active {
+  border-color:
+    #3b82b7;
+
+  background:
+    #0c2b43;
+
+  color:
+    #bfe6ff;
+}
+
+
+.secondary-control.control-active-red {
+  border-color:
+    #8e3942;
+
+  background:
+    #32151a;
+
+  color:
+    #ff9b9f;
+}
+
+
+.primary-control {
+  border:
+    1px solid #c4363c;
+
+  background:
+    linear-gradient(
+      135deg,
+      #e33b42,
+      #a81f29
+    );
+
+  color:
+    white;
+
+  font-weight:
+    700;
+}
+
+
+.primary-control:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+}
+
+
+.secondary-control:disabled,
+.primary-control:disabled {
+  cursor:
+    not-allowed;
+
+  opacity:
+    0.4;
+}
+
+
+/* ============================================================
+   HELP
+   ============================================================ */
+
+.click-help {
+  margin:
+    9px 0 0;
+
+  color:
+    #657b92;
+
+  font-size:
+    8px;
+
+  text-align:
+    center;
+}
+
+
+/* ============================================================
+   ANALYSIS
+   ============================================================ */
+
+.brain-analysis {
+  width:
+    min(1500px, 100%);
+
+  margin:
+    18px auto 0;
+
+  padding:
+    20px;
+
+  border:
+    1px solid #19334d;
+
+  border-radius:
+    15px;
+
+  background:
+    linear-gradient(
+      150deg,
+      #081827,
+      #06111e
+    );
+}
+
+
+.analysis-heading {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    18px;
+
+  margin-bottom:
+    16px;
+}
+
+
+.analysis-heading h2 {
+  margin:
+    4px 0 3px;
+
+  font-size:
+    19px;
+}
+
+
+.analysis-heading p {
+  margin:
+    0;
+
+  color:
+    #71879f;
+
+  font-size:
+    10px;
+}
+
+
+.analysis-status {
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    6px;
+
+  padding:
+    6px 9px;
+
+  border:
+    1px solid #21425e;
+
+  border-radius:
+    999px;
+
+  color:
+    #7690aa;
+
+  font-size:
+    8px;
+
+  white-space:
+    nowrap;
+}
+
+
+.analysis-status span {
+  width:
+    6px;
+
+  height:
+    6px;
+
+  border-radius:
+    50%;
+
+  background:
+    #3dd598;
+
+  box-shadow:
+    0 0 9px
+    rgba(61, 213, 152, 0.7);
+}
+
+
+/* ============================================================
+   DATA GRID
+   ============================================================ */
+
+.brain-data-grid {
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      5,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    9px;
+}
+
+
+.brain-data-card {
+  min-height:
+    78px;
+
+  padding:
+    12px;
+
+  position:
+    relative;
+
+  overflow:
+    hidden;
+
+  border:
+    1px solid #18334c;
+
+  border-radius:
+    10px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #0a1c2f,
+      #081625
+    );
+}
+
+
+.brain-data-card::before {
+  content:
+    "";
+
+  position:
+    absolute;
+
+  left:
+    0;
+
+  top:
+    0;
+
+  width:
+    3px;
+
+  height:
+    100%;
+
+  background:
+    #338fd0;
+}
+
+
+.brain-data-card span {
+  display:
+    block;
+
+  margin-bottom:
+    8px;
+
+  color:
+    #6e849d;
+
+  font-size:
+    8px;
+
+  font-weight:
+    700;
+
+  letter-spacing:
+    0.07em;
+
+  text-transform:
+    uppercase;
+}
+
+
+.brain-data-card strong {
+  display:
+    block;
+
+  color:
+    #e6f0fb;
+
+  font-size:
+    13px;
+
+  line-height:
+    1.35;
+
+  overflow-wrap:
+    anywhere;
+}
+
+
+.brain-data-card.red::before {
+  background:
+    #ef4444;
+}
+
+
+.brain-data-card.green::before {
+  background:
+    #34d399;
+}
+
+
+.brain-data-card.cyan::before {
+  background:
+    #22d3ee;
+}
+
+
+.brain-data-card.purple::before {
+  background:
+    #a78bfa;
+}
+
+
+.brain-data-card.blue::before {
+  background:
+    #3b9cf5;
+}
+
+
+/* ============================================================
+   TECHNICAL INFORMATION
+   ============================================================ */
+
+.technical-info {
+  margin-top:
+    10px;
+
+  padding:
+    11px 13px;
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    16px;
+
+  flex-wrap:
+    wrap;
+
+  border:
+    1px solid #182f47;
+
+  border-radius:
+    9px;
+
+  background:
+    #071522;
+}
+
+
+.technical-info
+> div:first-child {
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    3px;
+}
+
+
+.technical-info
+> div:first-child
+span {
+  color:
+    #3ab5ed;
+
+  font-size:
+    7px;
+
+  font-weight:
+    800;
+
+  letter-spacing:
+    0.1em;
+}
+
+
+.technical-info
+> div:first-child
+strong {
+  font-size:
+    10px;
+}
+
+
+.technical-value {
+  padding-left:
+    13px;
+
+  border-left:
+    1px solid #223c56;
+
+  color:
+    #8095aa;
+
+  font-size:
+    9px;
+}
+
+
+/* ============================================================
+   BOTTOM INFORMATION
+   ============================================================ */
+
+.brain-bottom-grid {
+  width:
+    min(1500px, 100%);
+
+  margin:
+    16px auto 0;
+
+  display:
+    grid;
+
+  grid-template-columns:
+    1fr
+    1fr;
+
+  gap:
+    16px;
+}
+
+
+.bottom-card {
+  padding:
+    17px;
+
+  display:
+    flex;
+
+  gap:
+    13px;
+
+  border:
+    1px solid #19334c;
+
+  border-radius:
+    13px;
+
+  background:
+    #081624;
+}
+
+
+.bottom-icon {
+  width:
+    39px;
+
+  height:
+    39px;
+
+  flex:
+    0 0 auto;
+
+  display:
+    grid;
+
+  place-items:
+    center;
+
+  border-radius:
+    9px;
+
+  background:
+    #0a2035;
+
+  border:
+    1px solid #19496d;
+
+  color:
+    #37b9ff;
+
+  font-size:
+    17px;
+}
+
+
+.red-bottom-icon {
+  color:
+    #ff5a5f;
+
+  border-color:
+    #643239;
+
+  background:
+    #291419;
+}
+
+
+.bottom-card h3 {
+  margin:
+    4px 0 5px;
+
+  font-size:
+    13px;
+}
+
+
+.bottom-card p {
+  margin:
+    0;
+
+  color:
+    #778da5;
+
+  font-size:
+    10px;
+
+  line-height:
+    1.55;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.brain-footer {
+  width:
+    min(1500px, 100%);
+
+  margin:
+    22px auto 0;
+
+  padding-top:
+    14px;
+
+  display:
+    flex;
+
+  justify-content:
+    space-between;
+
+  gap:
+    12px;
+
+  border-top:
+    1px solid #162a3f;
+
+  color:
+    #536b84;
+
+  font-size:
+    8px;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1180px) {
+
+  .brain-header {
+    grid-template-columns:
+      1fr
+      1fr;
+
+    padding:
+      14px 0;
+  }
+
+
+  .brain-header-center {
+    order:
+      3;
+
+    grid-column:
+      1 / -1;
+  }
+
+
+  .brain-data-grid {
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+  }
+
+}
+
+
+@media (max-width: 900px) {
+
+  .brain-intro {
+    grid-template-columns:
+      auto
+      minmax(0, 1fr);
+  }
+
+
+  .intro-warning {
+    grid-column:
+      1 / -1;
+
+    padding-left:
+      0;
+
+    padding-top:
+      11px;
+
+    border-left:
+      0;
+
+    border-top:
+      1px solid #243c55;
+  }
+
+
+  .brain-viewers {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .brain-canvas {
+    height:
+      clamp(
+        350px,
+        58vh,
+        540px
+      );
+  }
+
+}
+
+
+@media (max-width: 680px) {
+
+  .brain-header {
+    display:
+      flex;
+
+    flex-direction:
+      column;
+
+    align-items:
+      stretch;
+
+    gap:
+      13px;
+  }
+
+
+  .brain-header-center {
+    order:
+      initial;
+
+    text-align:
+      left;
+  }
+
+
+  .back-results-button {
+    align-self:
+      flex-start;
+  }
+
+
+  .brain-intro {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .intro-warning {
+    grid-column:
+      auto;
+  }
+
+
+  .brain-data-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+
+
+  .brain-bottom-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .analysis-heading {
+    flex-direction:
+      column;
+
+    align-items:
+      flex-start;
+  }
+
+
+  .brain-footer {
+    flex-direction:
+      column;
+  }
+
+
+  .appearance-title {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+}
+
+
+@media (max-width: 460px) {
+
+  .brain-page {
+    padding-left:
+      9px;
+
+    padding-right:
+      9px;
+  }
+
+
+  .brain-card-header {
+    align-items:
+      flex-start;
+  }
+
+
+  .brain-chip {
+    display:
+      none;
+  }
+
+
+  .brain-canvas {
+    height:
+      340px;
+  }
+
+
+  .reference-action-row,
+  .tumor-action-row {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .brain-data-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+
+  .lock-row {
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
+  }
+
+
+  .lock-button {
+    width:
+      100%;
+  }
+
+
+  .color-options {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        1fr
+      );
+  }
+
+
+  .tumor-color-options {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(
+        2,
+        1fr
+      );
+  }
+
+}
