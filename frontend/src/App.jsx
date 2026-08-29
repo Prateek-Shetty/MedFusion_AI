@@ -943,28 +943,10 @@ function App() {
          * not as a response template.
          */
 
-        const chatbotPrompt = `
-MEDFUSION ANALYSIS CONTEXT
-Use this information only as reference for answering the user's question.
-Do not dump or repeat the context unless the user asks for it.
-Do not invent missing information.
-Missing fields are normal, especially for CT scans.
-If a classification section is absent, simply answer using the available information.
-
-${JSON.stringify(
-  chatbotAnalysisContext,
-  null,
-  2
-)}
-
-USER QUESTION
-${message}
-`;
-
         const data =
           await sendChatMessage(
             message,
-            chatbotPrompt
+            chatbotAnalysisContext
           );
 
         const responseText =
