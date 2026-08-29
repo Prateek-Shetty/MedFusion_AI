@@ -3197,3 +3197,360 @@ footer span {
 .chatbot-quick-questions button:active {
   transform: translateY(0);
 }
+
+/* ============================================================
+   ORIGINAL SCAN
+   ============================================================ */
+
+.original-scan-card {
+  width: 100%;
+  margin-bottom: 24px;
+  padding: 24px;
+
+  border: 1px solid #1c3348;
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(12, 29, 45, 0.98),
+      rgba(7, 19, 31, 0.98)
+    );
+
+  box-shadow:
+    0 18px 50px
+    rgba(
+      0,
+      0,
+      0,
+      0.22
+    );
+}
+
+
+.original-scan-header {
+  display: flex;
+
+  align-items: flex-start;
+
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 20px;
+}
+
+
+.original-scan-header h2 {
+  margin:
+    5px
+    0
+    6px;
+
+  color: #f1f5f9;
+
+  font-size: 22px;
+
+  letter-spacing: -0.5px;
+}
+
+
+.original-scan-header p {
+  margin: 0;
+
+  color: #8da1b5;
+
+  font-size: 12px;
+
+  line-height: 1.5;
+}
+
+
+.original-scan-content {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1.5fr)
+    minmax(220px, 0.5fr);
+
+  gap: 20px;
+
+  align-items: stretch;
+}
+
+
+.original-scan-image {
+  min-height: 300px;
+
+  overflow: hidden;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border:
+    1px solid
+    #243b50;
+
+  border-radius: 15px;
+
+  background:
+    #020a12;
+}
+
+
+.original-scan-image img {
+  width: 100%;
+  height: 100%;
+
+  min-height: 300px;
+
+  object-fit: contain;
+
+  display: block;
+}
+
+
+.scan-placeholder {
+  min-height: 300px;
+
+  width: 100%;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  text-align: center;
+
+  padding: 30px;
+}
+
+
+.scan-placeholder span {
+  font-size: 34px;
+
+  color: #5c7892;
+}
+
+
+.scan-placeholder strong {
+  color: #dbe7f1;
+
+  font-size: 14px;
+}
+
+
+.scan-placeholder small {
+  max-width: 300px;
+
+  color: #71869a;
+
+  font-size: 11px;
+
+  line-height: 1.5;
+}
+
+
+.original-scan-details {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 10px;
+
+  align-content: start;
+}
+
+
+.scan-detail {
+  padding: 15px;
+
+  border:
+    1px solid
+    #20384d;
+
+  border-radius: 12px;
+
+  background:
+    rgba(
+      15,
+      35,
+      51,
+      0.75
+    );
+}
+
+
+.scan-detail span {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #70879b;
+
+  font-size: 9px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.9px;
+}
+
+
+.scan-detail strong {
+  display: block;
+
+  color: #e5edf5;
+
+  font-size: 14px;
+
+  word-break: break-word;
+}
+
+
+.scan-alert {
+  color: #ff7180 !important;
+}
+
+
+.scan-safe {
+  color: #62d5a0 !important;
+}
+
+
+@media (
+  max-width: 850px
+) {
+
+  .original-scan-content {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+@media (
+  max-width: 520px
+) {
+
+  .original-scan-card {
+    padding: 17px;
+  }
+
+
+  .original-scan-header {
+    flex-direction: column;
+  }
+
+
+  .original-scan-details {
+    grid-template-columns: 1fr 1fr;
+  }
+
+
+  .original-scan-image,
+  .original-scan-image img {
+    min-height: 230px;
+  }
+
+}
+
+/* ============================================================
+   3D BRAIN VISUALIZATION BUTTON
+   ============================================================ */
+
+.brain3d-open-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  margin-top: 20px;
+  padding: 12px 18px;
+
+  border: 1px solid #246b9b;
+  border-radius: 10px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #0d3150,
+      #0a2339
+    );
+
+  color: #e8f5ff;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 8px 24px
+    rgba(0, 0, 0, 0.18);
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+.brain3d-open-button:hover {
+  transform:
+    translateY(-2px);
+
+  border-color:
+    #38bdf8;
+
+  background:
+    linear-gradient(
+      135deg,
+      #12466e,
+      #0c304e
+    );
+
+  box-shadow:
+    0 12px 30px
+    rgba(
+      0,
+      0,
+      0,
+      0.25
+    );
+}
+
+
+.brain3d-open-icon {
+  color:
+    #38bdf8;
+
+  font-size:
+    14px;
+}
+
+
+.brain3d-open-arrow {
+  color:
+    #7dd3fc;
+
+  font-size:
+    15px;
+
+  transition:
+    transform 0.2s ease;
+}
+
+
+.brain3d-open-button:hover
+.brain3d-open-arrow {
+  transform:
+    translateX(3px);
+}

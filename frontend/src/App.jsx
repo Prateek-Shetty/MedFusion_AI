@@ -15,6 +15,8 @@ import {
 
 import "./App.css";
 
+import Brain3D from "./Brain3D.jsx";
+
 import {
   analyzeScan,
   sendChatMessage,
@@ -24,12 +26,8 @@ import {
 // ============================================================
 // HELPERS
 // ============================================================
-
 function getPredictionChartData(predictions) {
-  if (
-    !predictions ||
-    typeof predictions !== "object"
-  ) {
+  if (!predictions || typeof predictions !== "object") {
     return [];
   }
 
@@ -48,20 +46,15 @@ function getPredictionChartData(predictions) {
 
       return {
         tumorType,
-        probability: Number(
-          probability.toFixed(2)
-        ),
+        probability: Number(probability.toFixed(2)),
       };
     })
     .filter(Boolean)
     .sort(
       (a, b) =>
-        b.probability -
-        a.probability
+        b.probability - a.probability
     );
 }
-
-
 function formatPercent(value) {
   if (
     value === null ||
@@ -117,8 +110,33 @@ function formatNumber(value) {
 }
 
 
-function firstAvailable(...values) {
+// function getNestedValue(
+//   object,
+//   keys = [],
+// ) {
+//   let current = object;
+
+//   for (const key of keys) {
+
+//     if (
+//       current === null ||
+//       current === undefined
+//     ) {
+//       return undefined;
+//     }
+
+//     current = current[key];
+//   }
+
+//   return current;
+// }
+
+
+function firstAvailable(
+  ...values
+) {
   for (const value of values) {
+
     if (
       value !== undefined &&
       value !== null &&
@@ -126,219 +144,10 @@ function firstAvailable(...values) {
     ) {
       return value;
     }
+
   }
 
   return undefined;
-}
-
-
-// ============================================================
-// REMOVE LARGE / UNNECESSARY DATA BEFORE CHAT
-// ============================================================
-
-function buildChatbotAnalysisContext({
-  age,
-  gender,
-  pipeline,
-  modality,
-  model2Result,
-  model3Result,
-  model4Result,
-  measurements,
-  geminiStructured,
-}) {
-  const predictedModality =
-    firstAvailable(
-      modality?.predicted_modality,
-      modality?.prediction,
-      modality?.class,
-      "Unknown"
-    );
-
-  const modalityName =
-    String(
-      predictedModality || "Unknown"
-    ).toUpperCase();
-
-  const context = {
-    scan: {
-      modality: modalityName,
-    },
-
-    patient: {
-      age:
-        age !== ""
-          ? Number(age)
-          : null,
-
-      gender:
-        gender || null,
-    },
-
-    detection: {
-      tumor_detected:
-        pipeline?.tumor_detected ??
-        model2Result?.tumor_detected ??
-        model4Result?.tumor_detected ??
-        null,
-
-      predicted_class:
-        model2Result?.predicted_class ??
-        null,
-
-      confidence:
-        model2Result?.confidence_percent ??
-        getConfidencePercent(
-          model2Result?.confidence
-        ) ??
-        null,
-    },
-
-    segmentation: {
-      tumor_detected:
-        model4Result?.tumor_detected ??
-        null,
-
-      measurements: {
-        area_pixels:
-          firstAvailable(
-            measurements?.area_pixels,
-            measurements?.tumor_area_pixels,
-            measurements?.area
-          ) ?? null,
-
-        tumor_percentage:
-          firstAvailable(
-            measurements?.tumor_percentage,
-            measurements?.tumor_percentage_of_image
-          ) ?? null,
-
-        width_pixels:
-          firstAvailable(
-            measurements?.width_pixels,
-            measurements?.tumor_width_pixels,
-            measurements?.width
-          ) ?? null,
-
-        height_pixels:
-          firstAvailable(
-            measurements?.height_pixels,
-            measurements?.tumor_height_pixels,
-            measurements?.height
-          ) ?? null,
-
-        mean_confidence_percent:
-          firstAvailable(
-            measurements?.mean_confidence_percent,
-            measurements?.mean_confidence
-          ) ?? null,
-
-        max_confidence_percent:
-          firstAvailable(
-            measurements?.max_confidence_percent,
-            measurements?.max_confidence
-          ) ?? null,
-      },
-
-      bounding_box:
-        measurements?.bounding_box ??
-        null,
-
-      centroid:
-        measurements?.centroid ??
-        null,
-    },
-  };
-
-
-  // ==========================================================
-  // MODEL 3
-  //
-  // Only include it when actual classification information
-  // exists. CT commonly won't have this.
-  // ==========================================================
-
-  const hasModel3Data =
-    model3Result &&
-    typeof model3Result === "object" &&
-    (
-      Object.keys(model3Result).length > 0
-    );
-
-
-  if (hasModel3Data) {
-    context.classification = {
-      tumor_type:
-        firstAvailable(
-          model3Result?.tumor_type,
-          model3Result?.predicted_class,
-          model3Result?.prediction
-        ) ?? null,
-
-      confidence_percent:
-        firstAvailable(
-          model3Result?.confidence_percent,
-          getConfidencePercent(
-            model3Result?.confidence
-          )
-        ) ?? null,
-
-      predictions:
-        model3Result?.predictions ??
-        null,
-    };
-  }
-
-
-  // ==========================================================
-  // GEMINI STRUCTURED RESULT
-  // ==========================================================
-
-  if (
-    geminiStructured &&
-    typeof geminiStructured === "object" &&
-    Object.keys(geminiStructured).length > 0
-  ) {
-    context.ai_report = {
-      summary:
-        geminiStructured?.summary ??
-        null,
-
-      finding_explanation:
-        geminiStructured?.finding_explanation ??
-        null,
-
-      patient_context:
-        geminiStructured?.patient_context ??
-        null,
-
-      specialist:
-        geminiStructured?.specialist ??
-        null,
-
-      next_step:
-        geminiStructured?.next_step ??
-        null,
-
-      treatment_information:
-        geminiStructured?.treatment_information ??
-        null,
-
-      supportive_guidance:
-        Array.isArray(
-          geminiStructured?.supportive_guidance
-        )
-          ? geminiStructured.supportive_guidance
-          : [],
-
-      safety_note:
-        geminiStructured?.safety_note ??
-        null,
-    };
-  }
-
-
-  return context;
 }
 
 
@@ -421,7 +230,7 @@ function App() {
       {
         role: "assistant",
         text:
-          "Hi! I’m the MedFusion AI assistant. Ask me anything about your scan, the AI findings, MRI, CT, tumor classification, segmentation, treatment concepts, or the analysis process.",
+          "Hi! I’m the MedFusion AI assistant. You can ask me about MRI, CT, brain tumors, segmentation, WHO grading, or the terms shown in your analysis.",
       },
     ]);
 
@@ -431,11 +240,15 @@ function App() {
   // ==========================================================
 
   useEffect(() => {
+
     return () => {
+
       if (preview) {
         URL.revokeObjectURL(preview);
       }
+
     };
+
   }, [preview]);
 
 
@@ -443,7 +256,10 @@ function App() {
   // FILE CHANGE
   // ==========================================================
 
-  const handleFileChange = (event) => {
+  const handleFileChange = (
+    event
+  ) => {
+
     const selectedFile =
       event.target.files?.[0];
 
@@ -451,12 +267,14 @@ function App() {
       return;
     }
 
+
     const allowedTypes = [
       "image/jpeg",
       "image/png",
       "image/bmp",
       "image/tiff",
     ];
+
 
     const allowedExtensions = [
       ".jpg",
@@ -467,13 +285,16 @@ function App() {
       ".tiff",
     ];
 
+
     const fileName =
       selectedFile.name.toLowerCase();
+
 
     const validType =
       allowedTypes.includes(
         selectedFile.type
       );
+
 
     const validExtension =
       allowedExtensions.some(
@@ -481,10 +302,12 @@ function App() {
           fileName.endsWith(extension)
       );
 
+
     if (
       !validType &&
       !validExtension
     ) {
+
       setErrorMessage(
         "Unsupported image format. Please use JPG, JPEG, PNG, BMP, TIF, or TIFF."
       );
@@ -492,9 +315,11 @@ function App() {
       return;
     }
 
+
     if (preview) {
       URL.revokeObjectURL(preview);
     }
+
 
     setFile(selectedFile);
 
@@ -505,6 +330,7 @@ function App() {
     );
 
     setAnalysisResult(null);
+
     setErrorMessage("");
   };
 
@@ -514,7 +340,9 @@ function App() {
   // ==========================================================
 
   const getLocation = () => {
+
     if (!navigator.geolocation) {
+
       setLocationStatus(
         "Location services are not supported by this browser."
       );
@@ -522,12 +350,16 @@ function App() {
       return;
     }
 
+
     setLocationStatus(
       "Getting your location..."
     );
 
+
     navigator.geolocation.getCurrentPosition(
+
       (position) => {
+
         const detectedLocation = {
           latitude:
             position.coords.latitude,
@@ -536,26 +368,32 @@ function App() {
             position.coords.longitude,
         };
 
+
         setLocation(
           detectedLocation
         );
+
 
         setLocationStatus(
           "Location detected successfully."
         );
       },
 
+
       () => {
+
         setLocationStatus(
           "Unable to access your location. You can continue without it."
         );
       },
+
 
       {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
       }
+
     );
   };
 
@@ -565,9 +403,12 @@ function App() {
   // ==========================================================
 
   const handleAnalyze = async () => {
+
     setErrorMessage("");
 
+
     if (!file) {
+
       setErrorMessage(
         "Please upload an MRI or CT brain scan."
       );
@@ -575,7 +416,9 @@ function App() {
       return;
     }
 
+
     if (!age) {
+
       setErrorMessage(
         "Please enter your age."
       );
@@ -583,7 +426,9 @@ function App() {
       return;
     }
 
+
     if (!gender) {
+
       setErrorMessage(
         "Please select your gender."
       );
@@ -591,9 +436,12 @@ function App() {
       return;
     }
 
+
     setLoading(true);
 
+
     try {
+
       const data =
         await analyzeScan({
           file,
@@ -602,14 +450,17 @@ function App() {
           location,
         });
 
+
       console.log(
         "MEDFUSION ANALYSIS RESULT:",
         data
       );
 
+
       setAnalysisResult(data);
 
       setPage("results");
+
 
       window.scrollTo({
         top: 0,
@@ -617,10 +468,12 @@ function App() {
       });
 
     } catch (error) {
+
       console.error(
         "Analysis error:",
         error
       );
+
 
       setErrorMessage(
         error.message ||
@@ -628,6 +481,7 @@ function App() {
       );
 
     } finally {
+
       setLoading(false);
     }
   };
@@ -638,6 +492,7 @@ function App() {
   // ==========================================================
 
   const handleHome = () => {
+
     setPage("home");
 
     setChatOpen(false);
@@ -652,252 +507,39 @@ function App() {
 
 
   // ==========================================================
-  // SAFE PIPELINE DATA
+  // 3D BRAIN VISUALIZATION
   // ==========================================================
 
-  const pipeline =
-    analysisResult?.pipeline || {};
+  const handleOpen3DBrain = () => {
 
-  const modality =
-    pipeline?.modality || {};
+    if (!analysisResult) {
+      return;
+    }
 
-  const model2 =
-    pipeline?.model2 || {};
+    setChatOpen(false);
 
-  const model2Result =
-    model2?.result || {};
+    setPage("3d");
 
-  const model3 =
-    pipeline?.model3 || {};
-
-  const model3Result =
-    model3?.result || {};
-
-  const predictionChartData =
-    getPredictionChartData(
-      model3Result?.predictions
-    );
-
-  const model4 =
-    pipeline?.model4 || {};
-
-  const model4Result =
-    model4?.result || {};
-
-  const measurements =
-    model4Result?.measurements || {};
-
-  const segmentation =
-    model4Result?.segmentation || {};
-
-  const gemini =
-    pipeline?.gemini || {};
-
-  const places =
-    pipeline?.places || {};
-
-
-  // ==========================================================
-  // GEMINI STRUCTURED DATA
-  // ==========================================================
-
-  const geminiStructured =
-    gemini?.structured ||
-    gemini?.data ||
-    {};
-
-  const geminiSummary =
-    geminiStructured?.summary ||
-    "";
-
-  const geminiFinding =
-    geminiStructured?.finding_explanation ||
-    "";
-
-  const geminiNextStep =
-    geminiStructured?.next_step ||
-    "";
-
-  const geminiSpecialist =
-    geminiStructured?.specialist ||
-    "";
-
-  const geminiPatientContext =
-    geminiStructured?.patient_context ||
-    "";
-
-  const geminiTreatment =
-    geminiStructured?.treatment_information ||
-    "";
-
-  const geminiGuidance =
-    Array.isArray(
-      geminiStructured?.supportive_guidance
-    )
-      ? geminiStructured.supportive_guidance
-      : [];
-
-  const geminiSafety =
-    geminiStructured?.safety_note ||
-    "";
-
-  const hasStructuredGemini =
-    Boolean(
-      geminiSummary ||
-      geminiFinding ||
-      geminiNextStep ||
-      geminiSpecialist ||
-      geminiPatientContext ||
-      geminiTreatment ||
-      geminiGuidance.length ||
-      geminiSafety
-    );
-
-
-  // ==========================================================
-  // MODEL 4 IMAGES
-  // ==========================================================
-
-  const maskImage =
-    segmentation?.mask_png_base64
-      ? `data:image/png;base64,${segmentation.mask_png_base64}`
-      : null;
-
-  const boundaryImage =
-    segmentation?.boundary_png_base64
-      ? `data:image/png;base64,${segmentation.boundary_png_base64}`
-      : null;
-
-  const overlayImage =
-    segmentation?.overlay_png_base64
-      ? `data:image/png;base64,${segmentation.overlay_png_base64}`
-      : null;
-
-
-  // ==========================================================
-  // DERIVED VALUES
-  // ==========================================================
-
-  const predictedModality =
-    firstAvailable(
-      modality?.predicted_modality,
-      modality?.prediction,
-      modality?.class,
-      "Not available"
-    );
-
-  const tumorDetected =
-    Boolean(
-      pipeline?.tumor_detected ??
-      model2Result?.tumor_detected ??
-      model4Result?.tumor_detected ??
-      false
-    );
-
-  const model2Confidence =
-    firstAvailable(
-      model2Result?.confidence_percent,
-      getConfidencePercent(
-        model2Result?.confidence
-      ),
-      model2Result?.confidence
-    );
-
-  const tumorType =
-    firstAvailable(
-      model3Result?.tumor_type,
-      model3Result?.predicted_class,
-      model3Result?.prediction,
-      "Undetermined"
-    );
-
-  const model3Confidence =
-    firstAvailable(
-      model3Result?.confidence_percent,
-      getConfidencePercent(
-        model3Result?.confidence
-      )
-    );
-
-  const tumorArea =
-    firstAvailable(
-      measurements?.area_pixels,
-      measurements?.tumor_area_pixels,
-      measurements?.area
-    );
-
-  const tumorPercentage =
-    firstAvailable(
-      measurements?.tumor_percentage,
-      measurements?.tumor_percentage_of_image
-    );
-
-  const tumorWidth =
-    firstAvailable(
-      measurements?.width_pixels,
-      measurements?.tumor_width_pixels,
-      measurements?.width
-    );
-
-  const tumorHeight =
-    firstAvailable(
-      measurements?.height_pixels,
-      measurements?.tumor_height_pixels,
-      measurements?.height
-    );
-
-  const meanSegmentationConfidence =
-    firstAvailable(
-      measurements?.mean_confidence_percent,
-      measurements?.mean_confidence
-    );
-
-  const maxSegmentationConfidence =
-    firstAvailable(
-      measurements?.max_confidence_percent,
-      measurements?.max_confidence
-    );
-
-
-  // ==========================================================
-  // OLD GEMINI FALLBACK
-  // ==========================================================
-
-  const oldGeminiReport =
-    gemini?.report || "";
-
-  const showOldGeminiReport =
-    Boolean(
-      oldGeminiReport &&
-      !hasStructuredGemini
-    );
-
-
-  // ==========================================================
-  // CHATBOT ANALYSIS CONTEXT
-  //
-  // This is rebuilt from the current scan.
-  //
-  // IMPORTANT:
-  // Base64 segmentation images are intentionally excluded.
-  // ==========================================================
-
-  const chatbotAnalysisContext =
-    buildChatbotAnalysisContext({
-      age,
-      gender,
-      pipeline,
-      modality,
-      model2Result,
-      model3Result,
-      model4Result,
-      measurements,
-      geminiStructured,
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
+  };
+
+
+  const handleBackFrom3DBrain = () => {
+
+    setPage("results");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
 
   // ==========================================================
-  // CHATBOT SUBMIT
+  // CHATBOT
   // ==========================================================
 
   const handleChatSubmit =
@@ -905,8 +547,10 @@ function App() {
 
       event.preventDefault();
 
+
       const message =
         chatInput.trim();
+
 
       if (
         !message ||
@@ -915,7 +559,9 @@ function App() {
         return;
       }
 
+
       setChatInput("");
+
 
       setChatMessages(
         (previous) => [
@@ -928,30 +574,22 @@ function App() {
         ]
       );
 
+
       setChatLoading(true);
+
 
       try {
 
-        /*
-         * The existing backend endpoint currently accepts
-         * one "message" field.
-         *
-         * Therefore the analysis context is embedded as a
-         * compact reference block before the user's question.
-         *
-         * The model is explicitly told to use it as reference,
-         * not as a response template.
-         */
-
         const data =
           await sendChatMessage(
-            message,
-            chatbotAnalysisContext
+            message
           );
+
 
         const responseText =
           data?.response ||
           "I could not generate a response.";
+
 
         setChatMessages(
           (previous) => [
@@ -970,6 +608,7 @@ function App() {
           "Chatbot error:",
           error
         );
+
 
         setChatMessages(
           (previous) => [
@@ -993,11 +632,261 @@ function App() {
 
 
   // ==========================================================
+  // SAFE PIPELINE DATA
+  // ==========================================================
+
+  const pipeline =
+    analysisResult?.pipeline || {};
+
+
+  const modality =
+    pipeline?.modality || {};
+
+
+  const model2 =
+    pipeline?.model2 || {};
+
+
+  const model2Result =
+    model2?.result || {};
+
+
+  const model3 =
+    pipeline?.model3 || {};
+
+
+  const model3Result =
+    model3?.result || {};
+
+  const predictionChartData =
+  getPredictionChartData(
+    model3Result?.predictions
+  );
+
+
+  const model4 =
+    pipeline?.model4 || {};
+
+
+  const model4Result =
+    model4?.result || {};
+
+
+  const measurements =
+    model4Result?.measurements || {};
+
+
+  const segmentation =
+    model4Result?.segmentation || {};
+
+
+  const gemini =
+    pipeline?.gemini || {};
+
+
+  const places =
+    pipeline?.places || {};
+
+
+  // ==========================================================
+  // GEMINI STRUCTURED DATA
+  // ==========================================================
+
+  const geminiStructured =
+    gemini?.structured ||
+    gemini?.data ||
+    {};
+
+
+  const geminiSummary =
+    geminiStructured?.summary ||
+    "";
+
+
+  const geminiFinding =
+    geminiStructured?.finding_explanation ||
+    "";
+
+
+  const geminiNextStep =
+    geminiStructured?.next_step ||
+    "";
+
+
+  const geminiSpecialist =
+    geminiStructured?.specialist ||
+    "";
+
+
+  const geminiPatientContext =
+    geminiStructured?.patient_context ||
+    "";
+
+
+  const geminiGuidance =
+    Array.isArray(
+      geminiStructured?.supportive_guidance
+    )
+      ? geminiStructured.supportive_guidance
+      : [];
+
+
+  const geminiSafety =
+    geminiStructured?.safety_note ||
+    "";
+
+
+  const hasStructuredGemini =
+    Boolean(
+      geminiSummary ||
+      geminiFinding ||
+      geminiNextStep ||
+      geminiSpecialist ||
+      geminiPatientContext ||
+      geminiGuidance.length ||
+      geminiSafety
+    );
+
+
+  // ==========================================================
+  // MODEL 4 IMAGES
+  // ==========================================================
+
+  const maskImage =
+    segmentation?.mask_png_base64
+      ? `data:image/png;base64,${segmentation.mask_png_base64}`
+      : null;
+
+
+  const boundaryImage =
+    segmentation?.boundary_png_base64
+      ? `data:image/png;base64,${segmentation.boundary_png_base64}`
+      : null;
+
+
+  const overlayImage =
+    segmentation?.overlay_png_base64
+      ? `data:image/png;base64,${segmentation.overlay_png_base64}`
+      : null;
+
+
+  // ==========================================================
+  // DERIVED VALUES
+  // ==========================================================
+
+  const predictedModality =
+    firstAvailable(
+      modality?.predicted_modality,
+      modality?.prediction,
+      modality?.class,
+      "Not available"
+    );
+
+
+  const tumorDetected =
+    Boolean(
+      pipeline?.tumor_detected ??
+      model4Result?.tumor_detected ??
+      false
+    );
+
+
+  const model2Confidence =
+    firstAvailable(
+      model2Result?.confidence_percent,
+      getConfidencePercent(
+        model2Result?.confidence
+      ),
+      model2Result?.confidence
+    );
+
+
+  const tumorType =
+    firstAvailable(
+      model3Result?.tumor_type,
+      model3Result?.predicted_class,
+      model3Result?.prediction,
+      "Undetermined"
+    );
+
+
+  const model3Confidence =
+    firstAvailable(
+      model3Result?.confidence_percent,
+      getConfidencePercent(
+        model3Result?.confidence
+      )
+    );
+
+
+  const tumorArea =
+    firstAvailable(
+      measurements?.area_pixels,
+      measurements?.tumor_area_pixels,
+      measurements?.area
+    );
+
+
+  const tumorPercentage =
+    firstAvailable(
+      measurements?.tumor_percentage,
+      measurements?.tumor_percentage_of_image
+    );
+
+
+  const tumorWidth =
+    firstAvailable(
+      measurements?.width_pixels,
+      measurements?.tumor_width_pixels,
+      measurements?.width
+    );
+
+
+  const tumorHeight =
+    firstAvailable(
+      measurements?.height_pixels,
+      measurements?.tumor_height_pixels,
+      measurements?.height
+    );
+
+
+  const meanSegmentationConfidence =
+    firstAvailable(
+      measurements?.mean_confidence_percent,
+      measurements?.mean_confidence
+    );
+
+
+  const maxSegmentationConfidence =
+    firstAvailable(
+      measurements?.max_confidence_percent,
+      measurements?.max_confidence
+    );
+
+
+  // ==========================================================
+  // GEMINI FALLBACK REPORT
+  // ==========================================================
+
+  const oldGeminiReport =
+    gemini?.report || "";
+
+
+  const showOldGeminiReport =
+    Boolean(
+      oldGeminiReport &&
+      !hasStructuredGemini
+    );
+
+
+  // ==========================================================
   // RENDER
   // ==========================================================
 
   return (
+
     <div className="app">
+
 
       {/* ======================================================
           NAVBAR
@@ -1035,6 +924,7 @@ function App() {
 
           </button>
 
+
           <div className="nav-status">
 
             <span className="status-dot"></span>
@@ -1062,13 +952,12 @@ function App() {
 
               <div className="hero-badge">
 
-                <span>
-                  ✦
-                </span>
+                <span>✦</span>
 
                 AI-ASSISTED BRAIN SCAN ANALYSIS
 
               </div>
+
 
               <h1>
 
@@ -1082,11 +971,14 @@ function App() {
 
               </h1>
 
+
               <p>
+
                 MedFusion AI analyzes MRI and CT
                 brain scans through a multi-stage
                 machine learning pipeline to provide
                 an educational analysis.
+
               </p>
 
             </div>
@@ -1101,6 +993,9 @@ function App() {
           <section className="analysis-wrapper">
 
             <div className="analysis-card">
+
+
+              {/* HEADER */}
 
               <div className="card-header">
 
@@ -1120,6 +1015,7 @@ function App() {
                   </p>
 
                 </div>
+
 
                 <div className="brain-symbol">
                   🧠
@@ -1182,6 +1078,7 @@ function App() {
 
                 )}
 
+
                 <input
                   type="file"
                   accept=".jpg,.jpeg,.png,.bmp,.tif,.tiff,image/*"
@@ -1213,7 +1110,11 @@ function App() {
 
                 </div>
 
+
                 <div className="form-grid">
+
+
+                  {/* AGE */}
 
                   <div className="form-field">
 
@@ -1234,6 +1135,7 @@ function App() {
                           const value =
                             event.target.value;
 
+
                           if (
                             value === "" ||
                             (
@@ -1241,7 +1143,9 @@ function App() {
                               Number(value) <= 120
                             )
                           ) {
+
                             setAge(value);
+
                           }
 
                         }}
@@ -1256,6 +1160,8 @@ function App() {
 
                   </div>
 
+
+                  {/* GENDER */}
 
                   <div className="form-field">
 
@@ -1334,6 +1240,7 @@ function App() {
 
                   </span>
 
+
                   <span className="location-text">
 
                     <strong>
@@ -1353,6 +1260,7 @@ function App() {
                     </small>
 
                   </span>
+
 
                   <span className="location-arrow">
                     →
@@ -1405,29 +1313,33 @@ function App() {
                   {loading ? (
 
                     <>
+
                       <span className="spinner"></span>
+
                       Running AI analysis...
+
                     </>
 
                   ) : (
 
                     <>
+
                       Analyze Scan
 
                       <span className="button-arrow">
                         →
                       </span>
+
                     </>
 
                   )}
 
                 </button>
 
+
                 <p className="disclaimer">
 
-                  <span>
-                    ⓘ
-                  </span>
+                  <span>ⓘ</span>
 
                   This is an AI-assisted college project.
                   Results are for educational demonstration
@@ -1455,6 +1367,11 @@ function App() {
 
         <main className="results-page">
 
+
+          {/* ==================================================
+              RESULTS HERO
+          ================================================== */}
+
           <section className="results-hero">
 
             <div className="results-hero-inner">
@@ -1467,17 +1384,17 @@ function App() {
                 ← Home
               </button>
 
+
               <div className="results-title">
 
                 <div className="hero-badge">
 
-                  <span>
-                    ✓
-                  </span>
+                  <span>✓</span>
 
                   ANALYSIS COMPLETE
 
                 </div>
+
 
                 <h1>
 
@@ -1489,6 +1406,7 @@ function App() {
 
                 </h1>
 
+
                 <p>
                   Results generated by the MedFusion
                   multi-stage AI pipeline.
@@ -1496,20 +1414,41 @@ function App() {
 
               </div>
 
+
+              <button
+                type="button"
+                className="brain3d-open-button"
+                onClick={handleOpen3DBrain}
+              >
+                <span className="brain3d-open-icon">✦</span>
+                <span>
+                  3D Brain Visualization
+                </span>
+                <span className="brain3d-open-arrow">→</span>
+              </button>
+
             </div>
 
           </section>
 
 
+          {/* ==================================================
+              RESULTS
+          ================================================== */}
+
           <section className="results-wrapper">
 
             <div className="results-card">
+
 
               {/* =================================================
                   OVERVIEW
               ================================================= */}
 
               <div className="overview-grid">
+
+
+                {/* MODALITY */}
 
                 <div className="overview-card">
 
@@ -1548,6 +1487,8 @@ function App() {
 
                 </div>
 
+
+                {/* DETECTION */}
 
                 <div
                   className={`overview-card ${
@@ -1599,6 +1540,8 @@ function App() {
                 </div>
 
 
+                {/* PIPELINE */}
+
                 <div className="overview-card">
 
                   <div className="overview-icon">
@@ -1628,7 +1571,7 @@ function App() {
 
 
               {/* =================================================
-                  MODEL 2
+                  MODEL 2 CARD
               ================================================= */}
 
               {pipeline?.model2 && (
@@ -1638,6 +1581,7 @@ function App() {
                   <div className="result-section-label">
                     MODEL 2
                   </div>
+
 
                   <div className="section-heading-row">
 
@@ -1654,6 +1598,7 @@ function App() {
 
                     </div>
 
+
                     <div
                       className={`result-pill ${
                         tumorDetected
@@ -1663,11 +1608,9 @@ function App() {
                     >
 
                       {model2Result?.predicted_class ||
-                        (
-                          tumorDetected
-                            ? "Tumor detected"
-                            : "No tumor"
-                        )}
+                        (tumorDetected
+                          ? "Tumor detected"
+                          : "No tumor")}
 
                     </div>
 
@@ -1715,6 +1658,7 @@ function App() {
 
                             </div>
 
+
                             <strong>
 
                               {formatPercent(
@@ -1740,18 +1684,17 @@ function App() {
 
 
               {/* =================================================
-                  MODEL 3
-                  ONLY RENDER WHEN IT ACTUALLY EXISTS
+                  MODEL 3 CARD
               ================================================= */}
 
-              {pipeline?.model3 &&
-                Object.keys(model3Result).length > 0 && (
+              {pipeline?.model3 && (
 
                 <div className="result-section">
 
                   <div className="result-section-label">
                     MODEL 3
                   </div>
+
 
                   <div className="section-heading-row">
 
@@ -1767,6 +1710,7 @@ function App() {
                       </p>
 
                     </div>
+
 
                     <div className="type-result">
 
@@ -1798,6 +1742,7 @@ function App() {
                       </strong>
 
                     </div>
+
 
                     <div className="confidence-track">
 
@@ -1855,8 +1800,10 @@ function App() {
 
 
                   <div className="result-note">
+
                     AI classification output only.
                     It is not a confirmed medical diagnosis.
+
                   </div>
 
                 </div>
@@ -1865,8 +1812,7 @@ function App() {
 
 
               {/* =================================================
-                  MODEL 3 GRAPH
-                  MRI WITH CLASSIFICATION ONLY
+                  MODEL 3 DYNAMIC CHART
               ================================================= */}
 
               {predictionChartData.length > 0 && (
@@ -1886,21 +1832,17 @@ function App() {
                       </h2>
 
                       <p>
-                        Dynamic visualization of the
-                        classification probabilities.
+                        Dynamic visualization of the probability
+                        distribution produced by Model 3.
                       </p>
 
                     </div>
 
                     <div className="result-pill pill-success">
-
-                      {predictionChartData.length}
-                      {" "}classes
-
+                      {predictionChartData.length} classes
                     </div>
 
                   </div>
-
 
                   <div
                     className="prediction-chart-card"
@@ -1956,12 +1898,7 @@ function App() {
                         <Bar
                           dataKey="probability"
                           name="Probability"
-                          radius={[
-                            6,
-                            6,
-                            0,
-                            0,
-                          ]}
+                          radius={[6, 6, 0, 0]}
                         />
 
                       </BarChart>
@@ -1971,11 +1908,10 @@ function App() {
                   </div>
 
                   <div className="result-note">
-
-                    This graph is generated only when
-                    Model 3 provides classification
-                    probabilities.
-
+                    This visualization is generated dynamically
+                    from the Model 3 prediction probabilities.
+                    It is an AI classification output and is not
+                    a confirmed medical diagnosis.
                   </div>
 
                 </div>
@@ -1984,7 +1920,7 @@ function App() {
 
 
               {/* =================================================
-                  MODEL 4
+                  MODEL 4 CARD
               ================================================= */}
 
               {pipeline?.model4 && (
@@ -1994,6 +1930,7 @@ function App() {
                   <div className="result-section-label">
                     MODEL 4A
                   </div>
+
 
                   <div className="section-heading-row">
 
@@ -2009,6 +1946,7 @@ function App() {
                       </p>
 
                     </div>
+
 
                     <div
                       className={`result-pill ${
@@ -2027,7 +1965,10 @@ function App() {
                   </div>
 
 
+                  {/* MEASUREMENTS */}
+
                   <div className="measurement-grid">
+
 
                     <div className="measurement-item">
 
@@ -2142,6 +2083,8 @@ function App() {
                   </div>
 
 
+                  {/* BOUNDING BOX */}
+
                   {measurements?.bounding_box && (
 
                     <div className="technical-box">
@@ -2150,38 +2093,54 @@ function App() {
                         Bounding Box
                       </div>
 
+
                       <div className="technical-grid">
 
                         <span>
+
                           X min:
+
                           <strong>
                             {" "}
                             {measurements.bounding_box.x_min}
                           </strong>
+
                         </span>
 
+
                         <span>
+
                           Y min:
+
                           <strong>
                             {" "}
                             {measurements.bounding_box.y_min}
                           </strong>
+
                         </span>
 
+
                         <span>
+
                           X max:
+
                           <strong>
                             {" "}
                             {measurements.bounding_box.x_max}
                           </strong>
+
                         </span>
 
+
                         <span>
+
                           Y max:
+
                           <strong>
                             {" "}
                             {measurements.bounding_box.y_max}
                           </strong>
+
                         </span>
 
                       </div>
@@ -2191,6 +2150,8 @@ function App() {
                   )}
 
 
+                  {/* CENTROID */}
+
                   {measurements?.centroid && (
 
                     <div className="technical-box">
@@ -2199,16 +2160,15 @@ function App() {
                         Tumor Centroid
                       </div>
 
+
                       <div className="centroid-value">
 
-                        X:
-                        {" "}
+                        X:{" "}
                         {measurements.centroid.x}
 
                         {"   "}
 
-                        Y:
-                        {" "}
+                        Y:{" "}
                         {measurements.centroid.y}
 
                       </div>
@@ -2222,8 +2182,8 @@ function App() {
 
                     <div className="result-warning">
 
-                      Model 4A output is experimental
-                      for this input modality.
+                      Model 4A output is experimental for
+                      this input modality.
 
                     </div>
 
@@ -2235,7 +2195,7 @@ function App() {
 
 
               {/* =================================================
-                  MODEL 4 IMAGES
+                  MODEL 4 VISUALIZATION
               ================================================= */}
 
               {(maskImage ||
@@ -2248,16 +2208,20 @@ function App() {
                     VISUAL SEGMENTATION
                   </div>
 
+
                   <h2>
                     Segmentation Visualizations
                   </h2>
+
 
                   <p>
                     The following images are generated
                     directly by Model 4A.
                   </p>
 
+
                   <div className="segmentation-grid">
+
 
                     {overlayImage && (
 
@@ -2320,7 +2284,7 @@ function App() {
 
 
               {/* =================================================
-                  GEMINI
+                  GEMINI — SUMMARY CARD
               ================================================= */}
 
               {gemini && (
@@ -2330,6 +2294,7 @@ function App() {
                   <div className="result-section-label">
                     GEMINI AI
                   </div>
+
 
                   <div className="gemini-header">
 
@@ -2346,6 +2311,7 @@ function App() {
 
                     </div>
 
+
                     {gemini?.model && (
 
                       <span className="model-badge">
@@ -2361,7 +2327,10 @@ function App() {
 
                     <div className="gemini-card-grid">
 
-                      {/* SUMMARY */}
+
+                      {/* =================================================
+                          SUMMARY
+                      ================================================= */}
 
                       <div className="gemini-result-card gemini-summary-card">
 
@@ -2380,7 +2349,8 @@ function App() {
                           </h3>
 
                           <p>
-                            {geminiSummary}
+                            {geminiSummary ||
+                              "Not available from the current pipeline."}
                           </p>
 
                         </div>
@@ -2388,7 +2358,9 @@ function App() {
                       </div>
 
 
-                      {/* FINDINGS */}
+                      {/* =================================================
+                          FINDINGS
+                      ================================================= */}
 
                       <div className="gemini-result-card">
 
@@ -2407,7 +2379,8 @@ function App() {
                           </h3>
 
                           <p>
-                            {geminiFinding}
+                            {geminiFinding ||
+                              "Not available from the current pipeline."}
                           </p>
 
                         </div>
@@ -2415,7 +2388,9 @@ function App() {
                       </div>
 
 
-                      {/* PATIENT */}
+                      {/* =================================================
+                          PATIENT CONTEXT
+                      ================================================= */}
 
                       <div className="gemini-result-card">
 
@@ -2434,8 +2409,10 @@ function App() {
                           </h3>
 
                           <p>
+
                             {geminiPatientContext ||
                               `Age: ${age} years · Gender: ${gender}`}
+
                           </p>
 
                         </div>
@@ -2443,7 +2420,9 @@ function App() {
                       </div>
 
 
-                      {/* NEXT STEP */}
+                      {/* =================================================
+                          NEXT STEP
+                      ================================================= */}
 
                       <div className="gemini-result-card">
 
@@ -2462,7 +2441,10 @@ function App() {
                           </h3>
 
                           <p>
-                            {geminiNextStep}
+
+                            {geminiNextStep ||
+                              "Not available from the current pipeline."}
+
                           </p>
 
                         </div>
@@ -2470,7 +2452,9 @@ function App() {
                       </div>
 
 
-                      {/* SPECIALIST */}
+                      {/* =================================================
+                          SPECIALIST
+                      ================================================= */}
 
                       <div className="gemini-result-card">
 
@@ -2489,7 +2473,10 @@ function App() {
                           </h3>
 
                           <p>
-                            {geminiSpecialist}
+
+                            {geminiSpecialist ||
+                              "Neurosurgery"}
+
                           </p>
 
                         </div>
@@ -2497,38 +2484,9 @@ function App() {
                       </div>
 
 
-                      {/* TREATMENT */}
-
-                      {geminiTreatment && (
-
-                        <div className="gemini-result-card">
-
-                          <div className="gemini-card-icon">
-                            💡
-                          </div>
-
-                          <div className="gemini-card-content">
-
-                            <span className="gemini-card-label">
-                              MANAGEMENT
-                            </span>
-
-                            <h3>
-                              Treatment Information
-                            </h3>
-
-                            <p>
-                              {geminiTreatment}
-                            </p>
-
-                          </div>
-
-                        </div>
-
-                      )}
-
-
-                      {/* GUIDANCE */}
+                      {/* =================================================
+                          SUPPORTIVE GUIDANCE
+                      ================================================= */}
 
                       <div className="gemini-result-card">
 
@@ -2543,8 +2501,9 @@ function App() {
                           </span>
 
                           <h3>
-                            Useful Guidance
+                            General Guidance
                           </h3>
+
 
                           {geminiGuidance.length > 0 ? (
 
@@ -2569,10 +2528,21 @@ function App() {
 
                           ) : (
 
-                            <p>
-                              No additional guidance
-                              was generated.
-                            </p>
+                            <ul className="guidance-list">
+
+                              <li>
+                                Discuss the AI-generated findings with a qualified healthcare professional.
+                              </li>
+
+                              <li>
+                                Keep the scan and report available for professional review.
+                              </li>
+
+                              <li>
+                                Do not self-medicate based on an AI result.
+                              </li>
+
+                            </ul>
 
                           )}
 
@@ -2581,7 +2551,9 @@ function App() {
                       </div>
 
 
-                      {/* SAFETY */}
+                      {/* =================================================
+                          SAFETY
+                      ================================================= */}
 
                       <div className="gemini-safety-card">
 
@@ -2596,8 +2568,10 @@ function App() {
                           </span>
 
                           <p>
+
                             {geminiSafety ||
-                              "This is an AI-generated research output and requires professional review."}
+                              "This is an AI-generated research output and requires review by a qualified healthcare professional."}
+
                           </p>
 
                         </div>
@@ -2608,8 +2582,14 @@ function App() {
 
                   ) : showOldGeminiReport ? (
 
+                    /* =================================================
+                       BACKWARD COMPATIBILITY
+                    ================================================= */
+
                     <div className="gemini-report">
+
                       {oldGeminiReport}
+
                     </div>
 
                   ) : (
@@ -2638,15 +2618,18 @@ function App() {
                   NEARBY SPECIALIST CARE
                 </div>
 
+
                 <h2>
                   Find Neurosurgery Care
                 </h2>
+
 
                 <p>
                   Search for neurosurgery and
                   specialist hospitals near your
                   provided location.
                 </p>
+
 
                 {places?.maps_search_url ? (
 
@@ -2698,7 +2681,9 @@ function App() {
                   Important Note
                 </strong>
 
+
                 <p>
+
                   MedFusion AI is an educational college
                   project. Its outputs are AI-generated
                   predictions and must not be treated as a
@@ -2706,18 +2691,26 @@ function App() {
                   discuss these findings with a qualified
                   healthcare professional before making any
                   medical decision.
+
                 </p>
 
               </div>
 
+
+              {/* =================================================
+                  HOME BUTTON
+              ================================================= */}
 
               <button
                 type="button"
                 className="results-home-button"
                 onClick={handleHome}
               >
+
                 ← Start a new analysis
+
               </button>
+
 
             </div>
 
@@ -2755,6 +2748,9 @@ function App() {
 
             <div className="chatbot-window">
 
+
+              {/* CHAT HEADER */}
+
               <div className="chatbot-header">
 
                 <div>
@@ -2764,10 +2760,11 @@ function App() {
                   </strong>
 
                   <span>
-                    Scan-aware AI Assistant
+                    Separate AI Assistant
                   </span>
 
                 </div>
+
 
                 <button
                   type="button"
@@ -2812,85 +2809,6 @@ function App() {
                 )}
 
 
-                {/* ====================================================
-                    QUICK QUESTIONS
-                    These are shortcuts only.
-                    The user can still type ANY question.
-                ==================================================== */}
-
-                {chatMessages.length === 1 &&
-                  !chatLoading && (
-
-                  <div className="chatbot-quick-questions">
-
-                    <div className="quick-question-title">
-                      Quick questions
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setChatInput(
-                          "What do my scan results mean?"
-                        )
-                      }
-                    >
-                      What do my scan results mean?
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setChatInput(
-                          "Why did the AI make this prediction?"
-                        )
-                      }
-                    >
-                      Why did the AI make this prediction?
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setChatInput(
-                          "What do the tumor measurements mean?"
-                        )
-                      }
-                    >
-                      What do the tumor measurements mean?
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setChatInput(
-                          "How does my age and gender relate to the AI findings?"
-                        )
-                      }
-                    >
-                      How does my age and gender relate?
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setChatInput(
-                          "What are the general treatment and management options?"
-                        )
-                      }
-                    >
-                      What are the general treatment options?
-                    </button>
-
-                  </div>
-
-                )}
-
-
-                {/* ====================================================
-                    TYPING INDICATOR
-                ==================================================== */}
-
                 {chatLoading && (
 
                   <div className="chat-message chat-message-assistant">
@@ -2925,9 +2843,10 @@ function App() {
                       event.target.value
                     )
                   }
-                  placeholder="Ask anything about the scan..."
+                  placeholder="Ask something..."
                   disabled={chatLoading}
                 />
+
 
                 <button
                   type="submit"
@@ -2955,6 +2874,23 @@ function App() {
           )}
 
         </main>
+
+      )}
+
+
+      {/* ======================================================
+          3D BRAIN VISUALIZATION PAGE
+      ====================================================== */}
+
+      {page === "3d" && (
+
+        <Brain3D
+          analysisResult={analysisResult}
+          inputImage={preview}
+          age={age}
+          gender={gender}
+          onBack={handleBackFrom3DBrain}
+        />
 
       )}
 

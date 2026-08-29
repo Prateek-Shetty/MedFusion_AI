@@ -16,7 +16,7 @@ import {
 
 import * as THREE from "three";
 
-import "./Brain3DTest.css";
+import "./Brain3D.css";
 
 
 const MODEL_PATH = "/models/brain.glb";
@@ -97,6 +97,45 @@ function formatPercent(value) {
 }
 
 
+function imageSrc(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const src = value.trim();
+
+  if (!src) {
+    return null;
+  }
+
+  // Already a valid browser image URL.
+  if (
+    src.startsWith("blob:") ||
+    src.startsWith("data:image/") ||
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.startsWith("/")
+  ) {
+    return src;
+  }
+
+  // Protect against the malformed value that can occur when a blob URL
+  // is accidentally prefixed with a base64 data URL header.
+  const blobIndex = src.indexOf("blob:");
+
+  if (blobIndex >= 0) {
+    return src.slice(blobIndex);
+  }
+
+  // Raw base64 returned by the backend.
+  return `data:image/png;base64,${src}`;
+}
+
+
 // ============================================================
 // ANALYSIS DATA
 // ============================================================
@@ -121,6 +160,9 @@ function getAnalysisData(
 
   const measurements =
     model4Result?.measurements || {};
+
+  const segmentation =
+    model4Result?.segmentation || {};
 
   const tumorDetected =
     Boolean(
@@ -178,6 +220,42 @@ function getAnalysisData(
     centroid:
       measurements?.centroid ||
       null,
+
+    segmentationMask:
+      imageSrc(
+        segmentation?.mask_png_base64 ??
+        segmentation?.maskImage ??
+        segmentation?.mask_image ??
+        segmentation?.segmentation_mask ??
+        model4Result?.mask_png_base64 ??
+        model4Result?.segmentation_mask ??
+        model4Result?.images?.mask_png_base64 ??
+        model4Result?.images?.segmentation_mask
+      ),
+
+    segmentationBoundary:
+      imageSrc(
+        segmentation?.boundary_png_base64 ??
+        segmentation?.boundaryImage ??
+        segmentation?.boundary_image ??
+        segmentation?.segmentation_boundary ??
+        model4Result?.boundary_png_base64 ??
+        model4Result?.segmentation_boundary ??
+        model4Result?.images?.boundary_png_base64 ??
+        model4Result?.images?.segmentation_boundary
+      ),
+
+    segmentationOverlay:
+      imageSrc(
+        segmentation?.overlay_png_base64 ??
+        segmentation?.overlayImage ??
+        segmentation?.overlay_image ??
+        segmentation?.segmentation_overlay ??
+        model4Result?.overlay_png_base64 ??
+        model4Result?.segmentation_overlay ??
+        model4Result?.images?.overlay_png_base64 ??
+        model4Result?.images?.segmentation_overlay
+      ),
   };
 }
 
@@ -864,6 +942,7 @@ function DataCard({
 function App({
   analysisResult = null,
   onBack,
+  inputImage = null,
 }) {
   const data =
     getAnalysisData(
@@ -1922,6 +2001,83 @@ function App({
         </article>
 
       </section>
+
+
+      {/* ======================================================
+          INPUT + SEGMENTED IMAGES
+          ====================================================== */}
+
+      {(inputImage ||
+        data.segmentationMask ||
+        data.segmentationBoundary ||
+        data.segmentationOverlay) && (
+        <section className="brain-image-output">
+
+          <div className="brain-image-row">
+
+            {inputImage && (
+              <div className="brain-image-card">
+                <div className="brain-image-label">
+                  INPUT IMAGE
+                </div>
+
+                <div className="brain-image-frame">
+                  <img
+                    src={imageSrc(inputImage)}
+                    alt="Input brain image"
+                  />
+                </div>
+              </div>
+            )}
+
+            {data.segmentationMask && (
+              <div className="brain-image-card">
+                <div className="brain-image-label">
+                  SEGMENTED IMAGE 1
+                </div>
+
+                <div className="brain-image-frame">
+                  <img
+                    src={data.segmentationMask}
+                    alt="Segmented brain image 1"
+                  />
+                </div>
+              </div>
+            )}
+
+            {data.segmentationBoundary && (
+              <div className="brain-image-card">
+                <div className="brain-image-label">
+                  SEGMENTED IMAGE 2
+                </div>
+
+                <div className="brain-image-frame">
+                  <img
+                    src={data.segmentationBoundary}
+                    alt="Segmented brain image 2"
+                  />
+                </div>
+              </div>
+            )}
+
+            {data.segmentationOverlay && (
+              <div className="brain-image-card">
+                <div className="brain-image-label">
+                  SEGMENTED IMAGE 3
+                </div>
+
+                <div className="brain-image-frame">
+                  <img
+                    src={data.segmentationOverlay}
+                    alt="Segmented brain image 3"
+                  />
+                </div>
+              </div>
+            )}
+
+          </div>
+        </section>
+      )}
 
 
       {/* ======================================================
