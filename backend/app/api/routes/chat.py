@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import (
     APIRouter,
     HTTPException,
@@ -10,21 +12,41 @@ from app.services.gemini_chat_service import (
 )
 
 
+# ============================================================
+# ROUTER
+# ============================================================
+
 router = APIRouter(
     prefix="/api/v1/chat",
     tags=["AI Chatbot"],
 )
 
 
-class ChatRequest(BaseModel):
+# ============================================================
+# REQUEST MODEL
+# ============================================================
 
+class ChatRequest(BaseModel):
     message: str
 
+    # IMPORTANT:
+    # The frontend may send different shapes of analysis data.
+    # Do not force it to be a dict.
+    analysis_context: Any = None
+
+
+# ============================================================
+# CHAT
+# ============================================================
 
 @router.post("")
 async def chat(
     request: ChatRequest,
 ):
+
+    # ========================================================
+    # VALIDATE MESSAGE
+    # ========================================================
 
     if not request.message:
 
@@ -42,15 +64,22 @@ async def chat(
             detail="Message cannot be empty.",
         )
 
+
+    # ========================================================
+    # SEND TO GEMINI
+    # ========================================================
+
     try:
 
         result = (
             gemini_chat_service.send_message(
-                message
+                message=message,
+                analysis_context=request.analysis_context,
             )
         )
 
         return result
+
 
     except ValueError as error:
 
@@ -59,7 +88,13 @@ async def chat(
             detail=str(error),
         )
 
+
     except Exception as error:
+
+        print(
+            "[Gemini Chat] ERROR:",
+            repr(error),
+        )
 
         raise HTTPException(
             status_code=500,

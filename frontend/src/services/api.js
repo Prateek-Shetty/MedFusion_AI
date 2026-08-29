@@ -6,6 +6,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   "http://127.0.0.1:8000";
 
+
 // ============================================================
 // COMPLETE ANALYSIS
 // ============================================================
@@ -68,11 +69,29 @@ export async function analyzeScan({
   return data;
 }
 
+
+// ============================================================
+// CHATBOT
+// ============================================================
+//
+// analysisContext is optional.
+//
+// This allows:
+// - normal general questions
+// - scan-aware questions
+// - MRI context
+// - CT context with missing Model 3
+//
+// ============================================================
+
 // ============================================================
 // CHATBOT
 // ============================================================
 
-export async function sendChatMessage(message) {
+export async function sendChatMessage(
+  message,
+  analysisContext = null
+) {
   const cleanedMessage =
     String(message || "").trim();
 
@@ -93,6 +112,7 @@ export async function sendChatMessage(message) {
 
       body: JSON.stringify({
         message: cleanedMessage,
+        analysis_context: analysisContext,
       }),
     }
   );
@@ -109,18 +129,30 @@ export async function sendChatMessage(message) {
 
   if (!response.ok) {
     const detail =
-      typeof data?.detail === "string"
-        ? data.detail
-        : "Chatbot request failed.";
+      data?.detail ||
+      data?.message ||
+      "Chatbot request failed.";
 
-    throw new Error(detail);
+    console.error(
+      "Chatbot backend error:",
+      data
+    );
+
+    throw new Error(
+      typeof detail === "string"
+        ? detail
+        : JSON.stringify(detail)
+    );
   }
 
   return data;
 }
 
+
 // ============================================================
 // API BASE URL
 // ============================================================
 
-export { API_BASE_URL };
+export {
+  API_BASE_URL,
+};

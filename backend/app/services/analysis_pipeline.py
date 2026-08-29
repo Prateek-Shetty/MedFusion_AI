@@ -524,8 +524,7 @@ class AnalysisPipeline:
                 places_result=
                     places_result,
 
-                patient_data=
-                    patient_data,
+                patient_data=patient_data,
 
             )
         )
@@ -750,6 +749,9 @@ class AnalysisPipeline:
 
                 places_result=
                     places_result,
+
+                patient_data=
+                    patient_data,
 
             )
         )

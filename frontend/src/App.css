@@ -3149,3 +3149,51 @@ footer span {
   }
 
 }
+
+/* ============================================================
+   CHATBOT QUICK QUESTIONS
+============================================================ */
+
+.chatbot-quick-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 0 2px;
+}
+
+.quick-question-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7890;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+.chatbot-quick-questions button {
+  width: 100%;
+  border: 1px solid #dce4ef;
+  background: #ffffff;
+  color: #26344d;
+  border-radius: 10px;
+  padding: 9px 11px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.chatbot-quick-questions button:hover {
+  border-color: #7ea5f5;
+  background: #f5f8ff;
+  transform: translateY(-1px);
+}
+
+.chatbot-quick-questions button:active {
+  transform: translateY(0);
+}
