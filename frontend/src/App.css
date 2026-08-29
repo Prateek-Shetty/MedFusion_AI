@@ -3554,3 +3554,222 @@ footer span {
   transform:
     translateX(3px);
 }
+
+
+/* ============================================================
+   MEDFUSION UI POLISH — PRESERVES ALL EXISTING STYLES
+   ============================================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.18);
+  outline-offset: 2px;
+}
+
+/* Subtle depth without changing the existing layout */
+.navbar {
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02),
+              0 8px 28px rgba(15, 23, 42, 0.025);
+}
+
+.analysis-card,
+.results-card {
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.analysis-card:hover,
+.results-card:hover {
+  border-color: #d8e1ec;
+  box-shadow:
+    0 28px 80px rgba(15, 23, 42, 0.095);
+}
+
+/* Cleaner section separation */
+.patient-section,
+.location-section,
+.analyze-section,
+.result-section {
+  scroll-margin-top: 90px;
+}
+
+/* Upload interaction */
+.upload-area {
+  position: relative;
+}
+
+.upload-area::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  pointer-events: none;
+  transition: border-color 0.2s ease;
+}
+
+.upload-area:hover::after {
+  border-color: rgba(91, 141, 239, 0.12);
+}
+
+.upload-area.has-preview::after {
+  display: none;
+}
+
+/* More polished controls */
+.input-wrapper input,
+.form-field select,
+.location-button {
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.input-wrapper input:hover,
+.form-field select:hover {
+  border-color: #b4c2d2;
+}
+
+.location-button:hover {
+  transform: translateY(-1px);
+}
+
+/* Better button feedback */
+.analyze-button,
+.home-button {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.analyze-button:hover:not(:disabled) {
+  box-shadow:
+    0 15px 30px rgba(37, 99, 235, 0.22);
+}
+
+.analyze-button:active:not(:disabled),
+.home-button:active {
+  transform: translateY(0);
+}
+
+/* Result cards feel more interactive without changing structure */
+.overview-card,
+.prediction-item,
+.measurement-item,
+.technical-box,
+.result-note {
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.overview-card:hover,
+.prediction-item:hover,
+.measurement-item:hover {
+  border-color: #d4dfeb;
+  transform: translateY(-1px);
+}
+
+/* Prevent long AI/model values from disturbing the layout */
+.results-card,
+.analysis-card,
+.result-section,
+.technical-box {
+  overflow-wrap: anywhere;
+}
+
+/* Better mobile spacing */
+@media (max-width: 760px) {
+  .hero {
+    padding-top: 52px;
+  }
+
+  .analysis-card,
+  .results-card {
+    border-radius: 18px;
+    padding: 24px;
+  }
+
+  .overview-grid,
+  .prediction-grid,
+  .measurement-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .navbar-inner {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .logo-text {
+    font-size: 18px;
+  }
+
+  .nav-status {
+    font-size: 11px;
+  }
+
+  .hero {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .analysis-wrapper,
+  .results-wrapper {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .analysis-card,
+  .results-card {
+    padding: 18px;
+  }
+
+  .card-header,
+  .section-heading-row {
+    gap: 14px;
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -2230,3 +2230,226 @@ strong {
     min-height: 240px;
   }
 }
+
+
+
+/* ============================================================
+   MEDFUSION 3D UI POLISH — PRESERVES ALL EXISTING FEATURES
+   ============================================================ */
+
+.brain-page {
+  overflow-x: hidden;
+}
+
+.brain-header,
+.brain-intro,
+.brain-viewers,
+.brain-analysis {
+  box-sizing: border-box;
+}
+
+/* Slightly stronger visual hierarchy */
+.brain-header {
+  position: relative;
+}
+
+.brain-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(56, 189, 248, 0.16),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.brain-card,
+.brain-analysis,
+.brain-intro {
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.brain-card:hover {
+  border-color: #255276;
+  box-shadow:
+    0 25px 65px rgba(0, 0, 0, 0.3);
+}
+
+.tumor-card:hover {
+  border-color: #673943;
+}
+
+/* Keep the canvas visually contained */
+.brain-canvas {
+  isolation: isolate;
+}
+
+.brain-canvas canvas {
+  outline: none;
+}
+
+/* Cleaner control interaction */
+.color-option,
+.secondary-control,
+.primary-control,
+.small-control,
+.lock-button,
+.toggle,
+.back-results-button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.color-option:focus-visible,
+.secondary-control:focus-visible,
+.primary-control:focus-visible,
+.small-control:focus-visible,
+.lock-button:focus-visible,
+.toggle:focus-visible,
+.back-results-button:focus-visible,
+input[type="range"]:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.45);
+  outline-offset: 2px;
+}
+
+.color-option:active,
+.secondary-control:active,
+.primary-control:active,
+.small-control:active,
+.lock-button:active,
+.back-results-button:active {
+  transform: translateY(0);
+}
+
+/* Make the image/result area feel like a proper analysis workspace */
+.brain-image-output {
+  width: min(1500px, 100%);
+  margin: 18px auto 0;
+  padding: 20px;
+  box-sizing: border-box;
+  border: 1px solid #19334d;
+  border-radius: 15px;
+  background:
+    linear-gradient(150deg, #081827, #06111e);
+}
+
+.brain-image-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.brain-image-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #18334c;
+  border-radius: 10px;
+  background: #081625;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.brain-image-card:hover {
+  border-color: #2b5b7e;
+  transform: translateY(-1px);
+}
+
+.brain-image-frame {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #030b14;
+}
+
+.brain-image-frame img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Better small-screen behavior */
+@media (max-width: 1000px) {
+  .brain-header {
+    grid-template-columns:
+      minmax(170px, 1fr)
+      minmax(240px, 1.2fr)
+      minmax(170px, 1fr);
+    gap: 14px;
+  }
+
+  .brain-viewers {
+    gap: 12px;
+  }
+
+  .brain-image-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .brain-header {
+    grid-template-columns: 1fr auto;
+    padding: 12px 0;
+  }
+
+  .brain-header-center {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-bottom: 10px;
+  }
+
+  .brain-viewers {
+    grid-template-columns: 1fr;
+  }
+
+  .brain-image-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .brain-image-output {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brain-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .brain-image-row {
+    grid-template-columns: 1fr;
+  }
+
+  .brain-intro {
+    grid-template-columns: 1fr;
+  }
+
+  .intro-warning {
+    padding-left: 0;
+    padding-top: 10px;
+    border-left: none;
+    border-top: 1px solid #243c55;
+  }
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
