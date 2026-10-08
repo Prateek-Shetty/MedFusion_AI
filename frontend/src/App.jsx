@@ -402,89 +402,102 @@ function App() {
   // ANALYZE
   // ==========================================================
 
-  const handleAnalyze = async () => {
+  // ============================================================
+// ANALYZE
+// ============================================================
 
-    setErrorMessage("");
+const handleAnalyze = async () => {
+  setErrorMessage("");
 
+  if (!file) {
+    setErrorMessage(
+      "Please upload an MRI or CT brain scan."
+    );
+    return;
+  }
 
-    if (!file) {
+  if (!age) {
+    setErrorMessage(
+      "Please enter your age."
+    );
+    return;
+  }
+
+  if (!gender) {
+    setErrorMessage(
+      "Please select your gender."
+    );
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const data = await analyzeScan({
+      file,
+      age,
+      gender,
+      location,
+    });
+
+    console.log(
+      "MEDFUSION ANALYSIS RESULT:",
+      data
+    );
+
+    // ========================================================
+    // MODEL 0 GATEKEEPER
+    // ========================================================
+    //
+    // If Model 0 rejects the image, STOP HERE.
+    // Do not open the results page.
+    // ========================================================
+
+    const pipelineStatus =
+      data?.pipeline?.pipeline_status ||
+      data?.pipeline_status;
+
+    const model0Rejected =
+      pipelineStatus === "stopped_model0_rejected";
+
+    if (model0Rejected) {
+      setAnalysisResult(null);
 
       setErrorMessage(
-        "Please upload an MRI or CT brain scan."
+        "Invalid input. Please upload a valid brain MRI or CT scan."
       );
 
       return;
     }
 
+    // ========================================================
+    // NORMAL SUCCESSFUL PIPELINE
+    // ========================================================
 
-    if (!age) {
+    setAnalysisResult(data);
 
-      setErrorMessage(
-        "Please enter your age."
-      );
+    setPage("results");
 
-      return;
-    }
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
 
+  } catch (error) {
+    console.error(
+      "Analysis error:",
+      error
+    );
 
-    if (!gender) {
+    setErrorMessage(
+      error.message ||
+      "Something went wrong during analysis."
+    );
 
-      setErrorMessage(
-        "Please select your gender."
-      );
-
-      return;
-    }
-
-
-    setLoading(true);
-
-
-    try {
-
-      const data =
-        await analyzeScan({
-          file,
-          age,
-          gender,
-          location,
-        });
-
-
-      console.log(
-        "MEDFUSION ANALYSIS RESULT:",
-        data
-      );
-
-
-      setAnalysisResult(data);
-
-      setPage("results");
-
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-
-    } catch (error) {
-
-      console.error(
-        "Analysis error:",
-        error
-      );
-
-
-      setErrorMessage(
-        error.message ||
-        "Something went wrong during analysis."
-      );
-
-    } finally {
-
-      setLoading(false);
-    }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   // ==========================================================

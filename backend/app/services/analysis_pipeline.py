@@ -1,6 +1,13 @@
 # ============================================================
 # MEDFUSION AI — COMPLETE ANALYSIS PIPELINE
 #
+# MODEL 0:
+#   Stage 1
+#      ↓
+#   Stage 2
+#      ↓
+#   Model 1
+#
 # MRI:
 #   Model 1
 #      ↓
@@ -27,10 +34,27 @@
 #
 # Model 5 has been completely removed.
 #
+# MODEL 0 SAFETY SWITCH:
+#
+#   ENABLE_MODEL0=true
+#       Upload
+#         ↓
+#       Stage 1
+#         ↓
+#       Stage 2
+#         ↓
+#       Model 1
+#
+#   ENABLE_MODEL0=false
+#       Upload
+#         ↓
+#       Model 1
+#
 # Supported input:
 #   JPG / JPEG / PNG / BMP / TIF / TIFF
 #
 # ============================================================
+
 
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -39,16 +63,59 @@ from PIL import Image
 
 
 # ============================================================
+# CONFIGURATION
+# ============================================================
+
+from app.config import settings
+
+
+# ============================================================
 # MODELS
 # ============================================================
 
-from app.models.modality_model import ModalityModel
-from app.models.mri_detector import MRITumorDetector
-from app.models.ct_detector import CTTumorDetector
+# ------------------------------------------------------------
+# MODEL 0 — TWO-STAGE GATEKEEPER
+# ------------------------------------------------------------
+
+from app.models.gatekeeper import (
+    gatekeeper_predict,
+)
+
+
+# ------------------------------------------------------------
+# MODEL 1 — MODALITY CLASSIFICATION
+# ------------------------------------------------------------
+
+from app.models.modality_model import (
+    ModalityModel,
+)
+
+
+# ------------------------------------------------------------
+# MODEL 2 — TUMOR DETECTION
+# ------------------------------------------------------------
+
+from app.models.mri_detector import (
+    MRITumorDetector,
+)
+
+from app.models.ct_detector import (
+    CTTumorDetector,
+)
+
+
+# ------------------------------------------------------------
+# MODEL 3B — TUMOR TYPE CLASSIFICATION
+# ------------------------------------------------------------
 
 from app.models.model3_classifier import (
     predict_model3,
 )
+
+
+# ------------------------------------------------------------
+# MODEL 4 — SEGMENTATION
+# ------------------------------------------------------------
 
 from app.models.model4_segmentation import (
     predict_model4,
@@ -76,6 +143,14 @@ from app.services.places_service import (
 class AnalysisPipeline:
     """
     MedFusion AI complete analysis pipeline.
+
+    MODEL 0:
+        Stage 1
+        -> Stage 2
+        -> Model 1
+
+    If Model 0 is disabled:
+        Model 1 starts directly.
 
     MRI:
 
@@ -159,15 +234,254 @@ class AnalysisPipeline:
             else {}
         )
 
+
+        # ====================================================
+        # MODEL 0 — TWO-STAGE GATEKEEPER
+        # ====================================================
+        #
+        # ENABLE_MODEL0=True:
+        #
+        #   Upload
+        #      ↓
+        #   Stage 1 — MRI/CT vs OTHER
+        #      ↓
+        #   Stage 2 — BRAIN vs NOT BRAIN
+        #      ↓
+        #   Model 1
+        #
+        # ENABLE_MODEL0=False:
+        #
+        #   Upload
+        #      ↓
+        #   Model 1
+        #
+        # ====================================================
+
+        model0_result = {
+            "enabled": bool(
+                settings.ENABLE_MODEL0
+            ),
+            "status": "bypassed",
+        }
+
+
+        # ====================================================
+        # MODEL 0 ENABLED
+        # ====================================================
+
+        if settings.ENABLE_MODEL0:
+
+            print()
+            print("========================================")
+            print("MODEL 0 GATEKEEPER ENABLED")
+            print("========================================")
+
+
+            # ------------------------------------------------
+            # RUN STAGE 1 + STAGE 2
+            # ------------------------------------------------
+
+            try:
+
+                gatekeeper_result = (
+                    gatekeeper_predict(
+                        image_path
+                    )
+                )
+
+            except Exception as error:
+
+                print(
+                    f"[MODEL 0] Gatekeeper error: "
+                    f"{error}"
+                )
+
+                return {
+
+                    "pipeline_status":
+                        "model0_failed",
+
+                    "model0_enabled":
+                        True,
+
+                    "model0": {
+
+                        "enabled":
+                            True,
+
+                        "status":
+                            "failed",
+
+                        "error":
+                            str(error),
+
+                    },
+
+                    "message":
+                        (
+                            "Model 0 gatekeeper "
+                            "failed during execution."
+                        ),
+
+                }
+
+
+            # ------------------------------------------------
+            # STORE MODEL 0 RESULT
+            # ------------------------------------------------
+
+            model0_result = {
+
+                "enabled":
+                    True,
+
+                "status":
+                    "success",
+
+                "result":
+                    gatekeeper_result,
+
+            }
+
+
+            # ------------------------------------------------
+            # FINAL MODEL 0 DECISION
+            # ------------------------------------------------
+
+            final_prediction = (
+                gatekeeper_result.get(
+                    "final_prediction",
+                    0,
+                )
+            )
+
+
+            # ------------------------------------------------
+            # MODEL 0 REJECTION
+            # ------------------------------------------------
+
+            try:
+
+                accepted_by_model0 = (
+                    int(final_prediction) == 1
+                )
+
+            except (
+                TypeError,
+                ValueError,
+            ):
+
+                accepted_by_model0 = False
+
+
+            if not accepted_by_model0:
+
+                print(
+                    "[MODEL 0] IMAGE REJECTED"
+                )
+
+                return {
+
+                    "pipeline_status":
+                        "stopped_model0_rejected",
+
+                    "model0_enabled":
+                        True,
+
+                    "model0":
+                        model0_result,
+
+                    "message":
+                        (
+                            "Image rejected by "
+                            "Model 0. The image was "
+                            "not accepted as a brain "
+                            "MRI or brain CT."
+                        ),
+
+                }
+
+
+            # ------------------------------------------------
+            # MODEL 0 ACCEPTED
+            # ------------------------------------------------
+
+            print(
+                "[MODEL 0] IMAGE ACCEPTED"
+            )
+
+            print(
+                "[MODEL 0] Starting Model 1..."
+            )
+
+
+        # ====================================================
+        # MODEL 0 DISABLED
+        # ====================================================
+
+        else:
+
+            print()
+            print("========================================")
+            print("MODEL 0 GATEKEEPER DISABLED")
+            print("========================================")
+            print("Starting directly from MODEL 1")
+
+
+            model0_result = {
+
+                "enabled":
+                    False,
+
+                "status":
+                    "bypassed",
+
+                "message":
+                    (
+                        "Model 0 was disabled "
+                        "by configuration."
+                    ),
+
+            }
+
+
         # ====================================================
         # MODEL 1 — MODALITY CLASSIFICATION
         # ====================================================
 
-        modality_result = (
-            self.modality_model.predict(
-                image_path
+        try:
+
+            modality_result = (
+                self.modality_model.predict(
+                    image_path
+                )
             )
-        )
+
+        except Exception as error:
+
+            return {
+
+                "pipeline_status":
+                    "model1_failed",
+
+                "model0":
+                    model0_result,
+
+                "message":
+                    (
+                        "Model 1 failed during "
+                        "modality classification."
+                    ),
+
+                "error":
+                    str(error),
+
+            }
+
+
+        # ----------------------------------------------------
+        # GET MODALITY
+        # ----------------------------------------------------
 
         modality = str(
             modality_result.get(
@@ -176,6 +490,7 @@ class AnalysisPipeline:
             )
         ).upper().strip()
 
+
         # ====================================================
         # MRI
         # ====================================================
@@ -183,11 +498,24 @@ class AnalysisPipeline:
         if modality == "MRI":
 
             return self._run_mri_pipeline(
-                image_path=image_path,
-                modality_result=modality_result,
-                patient_data=patient_data,
-                location=location,
+
+                image_path=
+                    image_path,
+
+                modality_result=
+                    modality_result,
+
+                patient_data=
+                    patient_data,
+
+                location=
+                    location,
+
+                model0_result=
+                    model0_result,
+
             )
+
 
         # ====================================================
         # MR FALLBACK
@@ -196,16 +524,33 @@ class AnalysisPipeline:
         if modality == "MR":
 
             modality_result = {
+
                 **modality_result,
-                "predicted_modality": "MRI",
+
+                "predicted_modality":
+                    "MRI",
+
             }
 
             return self._run_mri_pipeline(
-                image_path=image_path,
-                modality_result=modality_result,
-                patient_data=patient_data,
-                location=location,
+
+                image_path=
+                    image_path,
+
+                modality_result=
+                    modality_result,
+
+                patient_data=
+                    patient_data,
+
+                location=
+                    location,
+
+                model0_result=
+                    model0_result,
+
             )
+
 
         # ====================================================
         # CT
@@ -214,11 +559,24 @@ class AnalysisPipeline:
         if modality == "CT":
 
             return self._run_ct_pipeline(
-                image_path=image_path,
-                modality_result=modality_result,
-                patient_data=patient_data,
-                location=location,
+
+                image_path=
+                    image_path,
+
+                modality_result=
+                    modality_result,
+
+                patient_data=
+                    patient_data,
+
+                location=
+                    location,
+
+                model0_result=
+                    model0_result,
+
             )
+
 
         # ====================================================
         # UNKNOWN MODALITY
@@ -229,40 +587,88 @@ class AnalysisPipeline:
             "pipeline_status":
                 "stopped_unknown_modality",
 
+            "model0":
+                model0_result,
+
             "modality":
                 modality_result,
 
             "message":
                 (
-                    "Model 1 returned an unknown "
-                    "modality."
+                    "Model 1 returned an "
+                    "unknown modality."
                 ),
 
         }
+
 
     # ========================================================
     # MRI PIPELINE
     # ========================================================
 
     def _run_mri_pipeline(
+
         self,
+
         image_path: Path,
-        modality_result: Dict[str, Any],
-        patient_data: Dict[str, Any],
-        location: Optional[
-            Dict[str, float]
-        ],
+
+        modality_result:
+            Dict[str, Any],
+
+        patient_data:
+            Dict[str, Any],
+
+        location:
+            Optional[
+                Dict[str, float]
+            ],
+
+        model0_result:
+            Dict[str, Any],
+
     ) -> Dict[str, Any]:
+
 
         # ====================================================
         # MODEL 2A — MRI TUMOR DETECTION
         # ====================================================
 
-        tumor_detection = (
-            self.mri_model.predict(
-                image_path
+        try:
+
+            tumor_detection = (
+                self.mri_model.predict(
+                    image_path
+                )
             )
-        )
+
+        except Exception as error:
+
+            return {
+
+                "pipeline_status":
+                    "model2_failed",
+
+                "model0":
+                    model0_result,
+
+                "modality":
+                    modality_result,
+
+                "message":
+                    (
+                        "Model 2A failed during "
+                        "MRI tumor detection."
+                    ),
+
+                "error":
+                    str(error),
+
+            }
+
+
+        # ----------------------------------------------------
+        # GET PREDICTED CLASS
+        # ----------------------------------------------------
 
         predicted_class = str(
             tumor_detection.get(
@@ -271,18 +677,23 @@ class AnalysisPipeline:
             )
         ).strip().lower()
 
+
         tumor_detected = (
             predicted_class == "tumor"
         )
 
+
         # ====================================================
-        # INITIAL RESULT
+        # INITIAL MRI RESULT
         # ====================================================
 
         result = {
 
             "pipeline_status":
                 None,
+
+            "model0":
+                model0_result,
 
             "modality":
                 modality_result,
@@ -305,6 +716,7 @@ class AnalysisPipeline:
 
         }
 
+
         # ====================================================
         # NO TUMOR
         # ====================================================
@@ -318,14 +730,15 @@ class AnalysisPipeline:
             result[
                 "message"
             ] = (
-                "No tumor detected by Model 2A. "
-                "Pipeline stopped."
+                "No tumor detected by "
+                "Model 2A. Pipeline stopped."
             )
 
             return result
 
+
         # ====================================================
-        # MODEL 3
+        # MODEL 3 — TUMOR TYPE CLASSIFICATION
         # ====================================================
 
         try:
@@ -366,10 +779,12 @@ class AnalysisPipeline:
             result[
                 "message"
             ] = (
-                "Model 3 failed during classification."
+                "Model 3 failed during "
+                "classification."
             )
 
             return result
+
 
         result[
             "model3"
@@ -385,6 +800,7 @@ class AnalysisPipeline:
                 model3_result,
 
         }
+
 
         # ====================================================
         # MODEL 4A — SEGMENTATION
@@ -428,10 +844,12 @@ class AnalysisPipeline:
             result[
                 "message"
             ] = (
-                "Model 4A failed during segmentation."
+                "Model 4A failed during "
+                "segmentation."
             )
 
             return result
+
 
         result[
             "model4"
@@ -454,6 +872,7 @@ class AnalysisPipeline:
 
         }
 
+
         # ====================================================
         # MODEL 4 SAFETY CHECK
         # ====================================================
@@ -464,6 +883,7 @@ class AnalysisPipeline:
                 False,
             )
         )
+
 
         if not model4_tumor_detected:
 
@@ -476,12 +896,13 @@ class AnalysisPipeline:
             result[
                 "message"
             ] = (
-                "Model 2A detected a tumor, but "
-                "Model 4A did not produce a "
-                "segmented tumor region."
+                "Model 2A detected a tumor, "
+                "but Model 4A did not produce "
+                "a segmented tumor region."
             )
 
             return result
+
 
         # ====================================================
         # GOOGLE MAPS — NEUROSURGERY
@@ -493,9 +914,11 @@ class AnalysisPipeline:
             )
         )
 
+
         result[
             "places"
         ] = places_result
+
 
         # ====================================================
         # GEMINI
@@ -504,7 +927,8 @@ class AnalysisPipeline:
         gemini_result = (
             self._run_gemini(
 
-                modality="MRI",
+                modality=
+                    "MRI",
 
                 modality_result=
                     modality_result,
@@ -524,14 +948,17 @@ class AnalysisPipeline:
                 places_result=
                     places_result,
 
-                patient_data=patient_data,
+                patient_data=
+                    patient_data,
 
             )
         )
 
+
         result[
             "gemini"
         ] = gemini_result
+
 
         # ====================================================
         # FINAL STATUS
@@ -541,38 +968,86 @@ class AnalysisPipeline:
             "pipeline_status"
         ] = "completed"
 
+
         result[
             "message"
         ] = (
             "MRI pipeline completed through "
-            "Model 4A, Neurosurgery search and Gemini."
+            "Model 4A, Neurosurgery search "
+            "and Gemini."
         )
 
+
         return result
+
 
     # ========================================================
     # CT PIPELINE
     # ========================================================
 
     def _run_ct_pipeline(
+
         self,
+
         image_path: Path,
-        modality_result: Dict[str, Any],
-        patient_data: Dict[str, Any],
-        location: Optional[
-            Dict[str, float]
-        ],
+
+        modality_result:
+            Dict[str, Any],
+
+        patient_data:
+            Dict[str, Any],
+
+        location:
+            Optional[
+                Dict[str, float]
+            ],
+
+        model0_result:
+            Dict[str, Any],
+
     ) -> Dict[str, Any]:
+
 
         # ====================================================
         # MODEL 2B — CT TUMOR DETECTION
         # ====================================================
 
-        tumor_detection = (
-            self.ct_model.predict(
-                image_path
+        try:
+
+            tumor_detection = (
+                self.ct_model.predict(
+                    image_path
+                )
             )
-        )
+
+        except Exception as error:
+
+            return {
+
+                "pipeline_status":
+                    "model2_failed",
+
+                "model0":
+                    model0_result,
+
+                "modality":
+                    modality_result,
+
+                "message":
+                    (
+                        "Model 2B failed during "
+                        "CT tumor detection."
+                    ),
+
+                "error":
+                    str(error),
+
+            }
+
+
+        # ----------------------------------------------------
+        # GET PREDICTED CLASS
+        # ----------------------------------------------------
 
         predicted_class = str(
             tumor_detection.get(
@@ -581,18 +1056,23 @@ class AnalysisPipeline:
             )
         ).strip().lower()
 
+
         tumor_detected = (
             predicted_class == "tumor"
         )
 
+
         # ====================================================
-        # INITIAL RESULT
+        # INITIAL CT RESULT
         # ====================================================
 
         result = {
 
             "pipeline_status":
                 None,
+
+            "model0":
+                model0_result,
 
             "modality":
                 modality_result,
@@ -615,6 +1095,7 @@ class AnalysisPipeline:
 
         }
 
+
         # ====================================================
         # NO TUMOR
         # ====================================================
@@ -628,18 +1109,20 @@ class AnalysisPipeline:
             result[
                 "message"
             ] = (
-                "No tumor detected by Model 2B. "
-                "Pipeline stopped."
+                "No tumor detected by "
+                "Model 2B. Pipeline stopped."
             )
 
             return result
 
+
         # ====================================================
-        # MODEL 4A
+        # MODEL 4A — SEGMENTATION
         #
         # Model 4A was trained for MRI.
         #
-        # CT execution is therefore marked experimental.
+        # CT execution is therefore marked
+        # experimental.
         # ====================================================
 
         try:
@@ -680,10 +1163,12 @@ class AnalysisPipeline:
             result[
                 "message"
             ] = (
-                "Model 4A failed during segmentation."
+                "Model 4A failed during "
+                "segmentation."
             )
 
             return result
+
 
         result[
             "model4"
@@ -709,6 +1194,7 @@ class AnalysisPipeline:
 
         }
 
+
         # ====================================================
         # GOOGLE MAPS — NEUROSURGERY
         # ====================================================
@@ -719,9 +1205,11 @@ class AnalysisPipeline:
             )
         )
 
+
         result[
             "places"
         ] = places_result
+
 
         # ====================================================
         # GEMINI
@@ -730,7 +1218,8 @@ class AnalysisPipeline:
         gemini_result = (
             self._run_gemini(
 
-                modality="CT",
+                modality=
+                    "CT",
 
                 modality_result=
                     modality_result,
@@ -756,9 +1245,11 @@ class AnalysisPipeline:
             )
         )
 
+
         result[
             "gemini"
         ] = gemini_result
+
 
         # ====================================================
         # FINAL STATUS
@@ -768,14 +1259,18 @@ class AnalysisPipeline:
             "pipeline_status"
         ] = "completed"
 
+
         result[
             "message"
         ] = (
             "CT pipeline completed through "
-            "Model 4A, Neurosurgery search and Gemini."
+            "Model 4A, Neurosurgery search "
+            "and Gemini."
         )
 
+
         return result
+
 
     # ========================================================
     # GOOGLE MAPS
@@ -783,10 +1278,14 @@ class AnalysisPipeline:
 
     @staticmethod
     def _run_places(
-        location: Optional[
-            Dict[str, float]
-        ],
+
+        location:
+            Optional[
+                Dict[str, float]
+            ],
+
     ) -> Dict[str, Any]:
+
 
         # ====================================================
         # LOCATION NOT PROVIDED
@@ -809,9 +1308,13 @@ class AnalysisPipeline:
                     None,
 
                 "message":
-                    "User location was not provided.",
+                    (
+                        "User location was "
+                        "not provided."
+                    ),
 
             }
+
 
         # ====================================================
         # GET COORDINATES
@@ -824,6 +1327,7 @@ class AnalysisPipeline:
         longitude = location.get(
             "longitude"
         )
+
 
         if (
             latitude is None
@@ -846,11 +1350,12 @@ class AnalysisPipeline:
 
                 "message":
                     (
-                        "Valid latitude and longitude "
-                        "are required."
+                        "Valid latitude and "
+                        "longitude are required."
                     ),
 
             }
+
 
         # ====================================================
         # CONVERT COORDINATES
@@ -887,11 +1392,12 @@ class AnalysisPipeline:
 
                 "message":
                     (
-                        "Latitude and longitude must "
-                        "be valid numbers."
+                        "Latitude and longitude "
+                        "must be valid numbers."
                     ),
 
             }
+
 
         # ====================================================
         # VALIDATE LATITUDE
@@ -922,6 +1428,7 @@ class AnalysisPipeline:
 
             }
 
+
         # ====================================================
         # VALIDATE LONGITUDE
         # ====================================================
@@ -951,6 +1458,7 @@ class AnalysisPipeline:
 
             }
 
+
         # ====================================================
         # CREATE NEUROSURGERY SEARCH
         # ====================================================
@@ -972,6 +1480,7 @@ class AnalysisPipeline:
                 )
             )
 
+
             return {
 
                 "available":
@@ -987,6 +1496,7 @@ class AnalysisPipeline:
                     maps_url,
 
             }
+
 
         except Exception as error:
 
@@ -1009,27 +1519,57 @@ class AnalysisPipeline:
 
             }
 
+
     # ========================================================
     # GEMINI
     # ========================================================
 
     @staticmethod
     def _run_gemini(
-    modality: str,
-    modality_result: Dict[str, Any],
-    tumor_detection: Dict[str, Any],
-    model3_result: Optional[
-        Dict[str, Any]
-    ],
-    model4_result: Dict[str, Any],
-    patient_data: Optional[
-        Dict[str, Any]
-    ],
-    location: Optional[
-        Dict[str, float]
-    ],
-    places_result: Dict[str, Any],
+
+        modality:
+            str,
+
+        modality_result:
+            Dict[str, Any],
+
+        tumor_detection:
+            Dict[str, Any],
+
+        model3_result:
+            Optional[
+                Dict[str, Any]
+            ],
+
+        model4_result:
+            Dict[str, Any],
+
+        location:
+            Optional[
+                Dict[str, float]
+            ],
+
+        places_result:
+            Dict[str, Any],
+
+        patient_data:
+            Optional[
+                Dict[str, Any]
+            ] = None,
+
     ) -> Dict[str, Any]:
+
+
+        # ====================================================
+        # NORMALIZE PATIENT DATA
+        # ====================================================
+
+        patient_data = (
+            patient_data
+            if patient_data is not None
+            else {}
+        )
+
 
         # ====================================================
         # MODEL 4 SUMMARY
@@ -1038,6 +1578,7 @@ class AnalysisPipeline:
         # ====================================================
 
         model4_summary = {}
+
 
         if isinstance(
             model4_result,
@@ -1074,6 +1615,7 @@ class AnalysisPipeline:
 
             }
 
+
         # ====================================================
         # MODEL 3
         # ====================================================
@@ -1083,6 +1625,7 @@ class AnalysisPipeline:
             if model3_result is not None
             else None
         )
+
 
         # ====================================================
         # GOOGLE MAPS SUMMARY
@@ -1112,6 +1655,7 @@ class AnalysisPipeline:
 
         }
 
+
         # ====================================================
         # COMPACT GEMINI PAYLOAD
         #
@@ -1119,31 +1663,55 @@ class AnalysisPipeline:
         # ====================================================
 
         pipeline_data = {
-    "patient": {
-        "age": patient_data.get("age")
-        if isinstance(patient_data, dict)
-        else None,
 
-        "sex_category": patient_data.get(
-            "sex_category"
-        )
-        if isinstance(patient_data, dict)
-        else None,
-    },
+            "patient": {
 
-    "scan": {
-        "modality": modality,
-        "modality_result": modality_result,
-    },
+                "age":
+                    patient_data.get(
+                        "age"
+                    )
+                    if isinstance(
+                        patient_data,
+                        dict
+                    )
+                    else None,
 
-    "tumor_detection": tumor_detection,
+                "sex_category":
+                    patient_data.get(
+                        "sex_category"
+                    )
+                    if isinstance(
+                        patient_data,
+                        dict
+                    )
+                    else None,
 
-    "model3": model3_summary,
+            },
 
-    "model4": model4_summary,
+            "scan": {
 
-    "specialist_search": places_summary,
-}
+                "modality":
+                    modality,
+
+                "modality_result":
+                    modality_result,
+
+            },
+
+            "tumor_detection":
+                tumor_detection,
+
+            "model3":
+                model3_summary,
+
+            "model4":
+                model4_summary,
+
+            "specialist_search":
+                places_summary,
+
+        }
+
 
         # ====================================================
         # GEMINI
